@@ -1,4 +1,6 @@
-.Rproj.user
 .Rhistory
+.Rproj.user
 .RData
 .Ruserdata
+.idea/*
+geckodriver*
