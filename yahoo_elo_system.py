@@ -1,5 +1,5 @@
-from yahoo_tools.yahoo_table_scraper import YahooTableScraper
-from yahoo_tools.weekly_formatter import WeeklyFormatter
+from tools.yahoo_table_scraper import YahooTableScraper
+from tools.weekly_formatter import WeeklyFormatter
 import argparse
 
 parser = argparse.ArgumentParser()
