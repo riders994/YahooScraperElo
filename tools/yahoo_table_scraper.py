@@ -35,9 +35,12 @@ class YahooTableScraper:
                 print('connecting')
                 elem = self.driver.find_elements_by_xpath(XPATH)
                 print('Connected')
-                for el in elem:
+                teams = [el.text.split('\n') for el in elem]
+                for i, el in enumerate(teams):
                     print('Grab Player')
-                    stats = el.text.split('\n')
+                    opp = teams[abs(i - 1)]
+                    stats = el
+                    stats.append(opp[0])
                     player_id = stats[0]
                     self.player_stats[player_id] = stats[1:]
                     crawled.add(player_id)
@@ -59,5 +62,6 @@ if __name__ == "__main__":
     for p, i in s.player_stats.items():
         print(p)
         print(i)
-
+    with open('player_stats.pkl', "wb") as file:
+        pickle.dump(s.player_stats, file)
     print('boop')
