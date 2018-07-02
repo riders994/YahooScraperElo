@@ -9,8 +9,8 @@ WEEK = '1'
 PLAYER_PICKLE_PATH = './players.pkl'
 PLAYERS = dict()
 
-with open(PLAYER_PICKLE_PATH, "rb") as file:
-    players = pickle.load(file)
+with open(PLAYER_PICKLE_PATH, "rb") as pkl:
+    players = pickle.load(pkl)
 for i, p in enumerate(players):
     PLAYERS[i] = p
 
