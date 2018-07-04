@@ -4,6 +4,7 @@ import pickle
 
 PLAYER_PICKLE_PATH = './players.pkl'
 WEEK = 1
+FRAME = pd.read_csv('./weekly_stats/week_{}.csv'.format(WEEK), index_col=0)
 FULL_ROWS = ['fgpct', 'ftpct', 'threes', 'points', 'rebounds', 'assists', 'steals', 'blocks', 'turnovers', 'true_score',
              'week']
 
@@ -33,40 +34,43 @@ class EloCalc:
     def _generate(self):
         with open(PLAYER_PICKLE_PATH, "rb") as pkl:
             players = pickle.load(pkl)
+            print(players)
+        players = players[1:]
         if self.stats == 'full':
-            self.weekly_frame = pd.DataFrame(data=1500, index=FULL_ROWS, columns=players[1:])
-            self.weekly_frame.week = 0
-        elif self.stats:
-            pass
+            self.weekly_frame = pd.DataFrame({player: [1500] * len(players) for player in players}, index=FULL_ROWS)
+            self.weekly_frame['week'] = 0
         else:
-            self.weekly_frame = pd.DataFrame(data=1500, index=players[1:], columns='week_0')
+            self.weekly_frame = pd.DataFrame({'week_0': [1500] * len(players)}, index=players)
 
     def _load(self):
         if self.stats:
             if self.stats == 'full':
                 try:
-                    self.weekly_frame = pd.DataFrame.from_csv('./elo/weekly_elo_full_week_{}.csv'.format(self.week - 1))
+                    self.weekly_frame = pd.read_csv('./elo/weekly_elo_full_week_{}.csv'.format(self.week - 1))
                 except FileNotFoundError:
-                    self._generate(True)
+                    self._generate()
                 except Exception as e:
                     raise e
             else:
                 try:
-                    self.weekly_frame = pd.DataFrame.from_csv('./elo/weekly_elo.csv')
+                    self.weekly_frame = pd.read_csv('./elo/weekly_elo.csv')
                 except FileNotFoundError:
                     self._generate()
                 except Exception as e:
                     raise e
         else:
             try:
-                self.weekly_frame = pd.DataFrame.from_csv('./elo/weekly_elo.csv')
+                self.weekly_frame = pd.read_csv('./elo/weekly_elo.csv', index_col=0)
             except FileNotFoundError:
                 self._generate()
             except Exception as e:
                 raise e
 
     def _verify(self):
-        return self.weekly_frame.week[0] == (self.week - 1)
+        if self.stats == 'full':
+            return self.weekly_frame.week[0] == (self.week - 1)
+        else:
+            return 'week_{}'.format(self.week - 1) in self.weekly_frame.columns
 
     def _full_load(self):
         pass
@@ -80,7 +84,23 @@ class EloCalc:
         elif self.stats:
             pass
         else:
-            new_week = 'week_{}'.format(self.week)
+            new_week = [0] * frame.shape[0]
+            player_row_dict = {player: i for i, player in enumerate(self.weekly_frame.index)}
+            calced = set()
+            vals = frame['true_score'].values
+            for player in self.weekly_frame.index:
+                if player not in calced:
+                    calced.add(player)
+                    p1_id = player_row_dict[player]
+                    player2 = frame.opponent[player]
+                    calced.add(player2)
+                    p2_id = player_row_dict[player2]
+                    player_1 = [self.weekly_frame.iloc[p1_id, self.week - 1], vals[p1_id]]
+                    player_2 = [self.weekly_frame.iloc[p2_id, self.week - 1], vals[p2_id]]
+                    scores = elo_calc(player_1, player_2)
+                    new_week[p1_id] = scores[0]
+                    new_week[p2_id] = scores[1]
+            self.weekly_frame['week_{}'.format(self.week)] = new_week
 
     def _write(self):
         if self.stats == 'full':
@@ -94,9 +114,9 @@ class EloCalc:
     def run(self, frame):
         if self.week:
             self._calc(frame)
-        else:
-            self._write()
+        self._write()
 
 
 if __name__ == "__main__":
     calc = EloCalc(WEEK)
+    calc.run(FRAME)
