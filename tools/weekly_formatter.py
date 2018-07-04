@@ -27,17 +27,17 @@ class WeeklyFormatter:
                 home = frame.loc[team]
                 away = home.opponent
                 print('Fixing scores for {home} and {away} for week {week}'.format(home=team, away=away, week=self.week))
-                home_score = home.score
-                away_score = frame.loc[away].score
+                home_score = home.score * 1.0
+                away_score = frame.loc[away].score * 1.0
                 diff = (9 - home_score - away_score)/2
                 home_score += diff
                 away_score += diff
                 home_score /= 9
                 away_score /= 9
                 print('boop')
-                frame.loc[team]['true_score'] = home_score
+                frame['true_score'][team] = home_score
                 print('boop')
-                frame.loc[away]['true_score'] = away_score
+                frame['true_score'][away] = away_score
                 print('boop')
                 scored.add(team)
                 scored.add(away)
