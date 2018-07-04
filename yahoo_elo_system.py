@@ -1,6 +1,7 @@
 from tools.yahoo_table_scraper import YahooTableScraper
 from tools.weekly_formatter import WeeklyFormatter
 import argparse
+import pickle
 
 parser = argparse.ArgumentParser()
 
@@ -30,6 +31,7 @@ class YahooEloSystem:
         self.formatter.run(scraper)
 
     def _elo_load(self):
+        pass
 
     def run(self):
         self._scrape()
