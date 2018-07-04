@@ -20,6 +20,7 @@ class YahooEloSystem:
     def __init__(self, league, week, players):
         self.scraper = YahooTableScraper(league, week, players)
         self.formatter = WeeklyFormatter()
+        self.elo_frame = self._elo_load(week)
         pass
 
     def _scrape(self):
@@ -27,6 +28,8 @@ class YahooEloSystem:
 
     def _format(self, scraper):
         self.formatter.run(scraper)
+
+    def _elo_load(self):
 
     def run(self):
         self._scrape()
