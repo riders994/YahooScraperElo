@@ -33,9 +33,9 @@ class WeeklyFormatter:
                 home_score += diff
                 away_score += diff
                 print('boop')
-                frame.loc[team]['true_score'] = home_score
+                frame['true_score'][team] = home_score
                 print('boop')
-                frame.loc[away].true_score = away_score
+                frame['true_score'][away] = away_score
                 print('boop')
                 scored.add(team)
                 scored.add(away)
