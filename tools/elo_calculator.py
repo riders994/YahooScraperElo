@@ -9,9 +9,9 @@ FULL_ROWS = ['fgpct', 'ftpct', 'threes', 'points', 'rebounds', 'assists', 'steal
              'week']
 
 
-def elo_calc(player_1, player_2, K = 40):
-    share_a = np.power(10, player_1[0])
-    share_b = np.power(10, player_2[0])
+def elo_calc(player_1, player_2, K = 60):
+    share_a = np.power(10, player_1[0]/400)
+    share_b = np.power(10, player_2[0]/400)
     total = share_a + share_b
 
     expected_a = share_a/total
@@ -87,16 +87,16 @@ class EloCalc:
             new_week = [0] * frame.shape[0]
             player_row_dict = {player: i for i, player in enumerate(self.weekly_frame.index)}
             calced = set()
-            vals = frame['true_score'].values
-            for player in self.weekly_frame.index:
-                if player not in calced:
-                    calced.add(player)
-                    p1_id = player_row_dict[player]
-                    player2 = frame.opponent[player]
-                    calced.add(player2)
-                    p2_id = player_row_dict[player2]
-                    player_1 = [self.weekly_frame.iloc[p1_id, self.week - 1], vals[p1_id]]
-                    player_2 = [self.weekly_frame.iloc[p2_id, self.week - 1], vals[p2_id]]
+            vals = frame['true_score']
+            for player_1_name in self.weekly_frame.index:
+                if player_1_name not in calced:
+                    calced.add(player_1_name)
+                    p1_id = player_row_dict[player_1_name]
+                    player_2_name = frame['opponent'][player_1_name]
+                    calced.add(player_2_name)
+                    p2_id = player_row_dict[player_2_name]
+                    player_1 = [self.weekly_frame.iloc[p1_id, self.week - 1] * 1.0, vals[player_1_name]]
+                    player_2 = [self.weekly_frame.iloc[p2_id, self.week - 1] * 1.0, vals[player_2_name]]
                     scores = elo_calc(player_1, player_2)
                     new_week[p1_id] = scores[0]
                     new_week[p2_id] = scores[1]

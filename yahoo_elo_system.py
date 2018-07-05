@@ -1,5 +1,6 @@
-from yahoo_tools.yahoo_table_scraper import YahooTableScraper
-from yahoo_tools.weekly_formatter import WeeklyFormatter
+from tools.yahoo_table_scraper import YahooTableScraper
+from tools.weekly_formatter import WeeklyFormatter
+from tools.elo_calculator import EloCalc
 import argparse
 
 parser = argparse.ArgumentParser()
@@ -17,9 +18,10 @@ for i, p in enumerate(players):
 
 class YahooEloSystem:
 
-    def __init__(self, league, week, players):
+    def __init__(self, league, week, players, stats=False):
         self.scraper = YahooTableScraper(league, week, players)
         self.formatter = WeeklyFormatter()
+        self.elo_calc = EloCalc(WEEK, stats)
         pass
 
     def _scrape(self):
@@ -27,6 +29,8 @@ class YahooEloSystem:
 
     def _format(self, scraper):
         self.formatter.run(scraper)
+
+    def _elo(self):
 
     def run(self):
         self._scrape()
@@ -37,4 +41,5 @@ class YahooEloSystem:
 
 
 if __name__ == "__main__":
-    scraper = YahooTableScraper(LEAGUE, WEEK, PLAYERS)
+    sys = YahooTableScraper(LEAGUE, WEEK, PLAYERS)
+    sys.run()
