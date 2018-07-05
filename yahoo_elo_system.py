@@ -1,5 +1,6 @@
 from tools.yahoo_table_scraper import YahooTableScraper
 from tools.weekly_formatter import WeeklyFormatter
+from tools.elo_calculator import EloCalc
 import argparse
 import pickle
 
@@ -10,18 +11,18 @@ WEEK = '1'
 PLAYER_PICKLE_PATH = './players.pkl'
 PLAYERS = dict()
 
-with open(PLAYER_PICKLE_PATH, "rb") as file:
-    players = pickle.load(file)
+with open(PLAYER_PICKLE_PATH, "rb") as pkl:
+    players = pickle.load(pkl)
 for i, p in enumerate(players):
     PLAYERS[i] = p
 
 
 class YahooEloSystem:
 
-    def __init__(self, league, week, players):
+    def __init__(self, league, week, players, stats=False):
         self.scraper = YahooTableScraper(league, week, players)
         self.formatter = WeeklyFormatter()
-        self.elo_frame = self._elo_load(week)
+        self.elo_calc = EloCalc(WEEK, stats)
         pass
 
     def _scrape(self):
@@ -30,16 +31,16 @@ class YahooEloSystem:
     def _format(self, scraper):
         self.formatter.run(scraper)
 
-    def _elo_load(self):
-        pass
+    def _elo(self):
+        self.elo_calc.run(self.formatter.frame)
 
     def run(self):
         self._scrape()
         self._format(self.scraper)
         self._elo()
-
         pass
 
 
 if __name__ == "__main__":
-    scraper = YahooTableScraper(LEAGUE, WEEK, PLAYERS)
+    sys = YahooTableScraper(LEAGUE, WEEK, PLAYERS)
+    sys.run()
