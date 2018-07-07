@@ -15,7 +15,7 @@ WEEK = 1
 class WeeklyFormatter:
     def __init__(self, week):
         print('Formatter started')
-        self.week = int(week)
+        self.week = week
         self.score_dict = dict()
 
     def _fix_scores(self, frame):
