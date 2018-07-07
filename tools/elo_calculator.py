@@ -9,7 +9,7 @@ FULL_ROWS = ['fgpct', 'ftpct', 'threes', 'points', 'rebounds', 'assists', 'steal
              'week']
 
 
-def elo_calc(player_1, player_2, K = 60):
+def elo_calc(player_1, player_2, k=60):
     share_a = np.power(10, player_1[0]/400)
     share_b = np.power(10, player_2[0]/400)
     total = share_a + share_b
@@ -17,7 +17,7 @@ def elo_calc(player_1, player_2, K = 60):
     expected_a = share_a/total
     expected_b = share_b/total
 
-    return [player_1[0] + K * (player_1[1] - expected_a), player_2[0] + K * (player_2[1] - expected_b)]
+    return [player_1[0] + k * (player_1[1] - expected_a), player_2[0] + k * (player_2[1] - expected_b)]
 
 
 class EloCalc:
@@ -97,7 +97,7 @@ class EloCalc:
                     p2_id = player_row_dict[player_2_name]
                     player_1 = [self.weekly_frame.iloc[p1_id, self.week - 1] * 1.0, vals[player_1_name]]
                     player_2 = [self.weekly_frame.iloc[p2_id, self.week - 1] * 1.0, vals[player_2_name]]
-                    scores = elo_calc(player_1, player_2)
+                    scores = elo_calc(player_1, player_2, k=40)
                     new_week[p1_id] = scores[0]
                     new_week[p2_id] = scores[1]
             self.weekly_frame['week_{}'.format(self.week)] = new_week
