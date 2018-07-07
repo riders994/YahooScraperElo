@@ -1,4 +1,5 @@
 import pandas as pd
+import logging
 import pickle
 
 
@@ -14,19 +15,20 @@ WEEK = 1
 
 class WeeklyFormatter:
     def __init__(self, week):
-        print('Formatter started')
+        self.logger = logging.getLogger(__name__)
+        self.logger.info('Formatter started')
         self.week = week
         self.score_dict = dict()
 
     def _fix_scores(self, frame):
-        print('Fixing scores')
+        self.logger.info('Fixing scores')
         frame['true_score'] = 0.0
         scored = set()
         for team in frame.index:
             if team not in scored:
                 home = frame.loc[team]
                 away = home.opponent
-                print('Fixing scores for {home} and {away} for week {week}'.format(home=team, away=away, week=self.week))
+                self.logger.info('Fixing scores for {home} and {away} for week {week}'.format(home=team, away=away, week=self.week))
                 home_score = home.score * 1.0
                 away_score = frame.loc[away].score * 1.0
                 diff = (9 - home_score - away_score)/2
@@ -34,39 +36,39 @@ class WeeklyFormatter:
                 away_score += diff
                 home_score /= 9
                 away_score /= 9
-                print('boop')
+                self.logger.info('boop')
                 frame['true_score'][team] = home_score
-                print('boop')
+                self.logger.info('boop')
                 frame['true_score'][away] = away_score
-                print('boop')
+                self.logger.info('boop')
                 scored.add(team)
                 scored.add(away)
-                print('Fixed scores for {home} and {away} for week {week}'.format(home=team, away=away, week=self.week))
+                self.logger.info('Fixed scores for {home} and {away} for week {week}'.format(home=team, away=away, week=self.week))
         return(frame[KEEP_COLS])
 
     def _format(self, player_dict):
         frame = pd.DataFrame.from_dict(player_dict, orient='index', columns=INIT_COLS)
-        print('Loaded frame')
+        self.logger.info('Loaded frame')
         frame.drop(index=['-/-', '0'], inplace=True)
         fg = frame.fgmfga.str.split('/')
         ft = frame.ftmfta.str.split('/')
-        print('Splitting field goals and free throws')
+        self.logger.info('Splitting field goals and free throws')
         frame[['fgm', 'fga']] = pd.DataFrame(fg.tolist(), index=frame.index)
         frame[['ftm', 'fta']] = pd.DataFrame(ft.tolist(), index=frame.index)
         frame['week'] = self.week
         for col in INT_COLS:
             frame[col] = frame[col].astype(int)
-            print(col)
+            self.logger.info(col)
         for col in FLT_COLS:
             frame[col] = frame[col].astype(float)
         self.frame = self._fix_scores(frame)
-        print('Scores fixed')
+        self.logger.info('Scores fixed')
 
     def _write(self):
         self.frame.to_csv('./weekly_stats/week_{}.csv'.format(self.week))
 
     def run(self, player_dict):
-        print('Loading testing dictionary.')
+        self.logger.info('Loading testing dictionary.')
         self._format(player_dict)
         self._write()
 

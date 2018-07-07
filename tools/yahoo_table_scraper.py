@@ -1,4 +1,5 @@
 from selenium import webdriver
+import logging
 import pickle
 
 URL = "https://basketball.fantasysports.yahoo.com/nba/{league}/matchup?week={week}&module=matchup&mid1="
@@ -15,7 +16,8 @@ for i, p in enumerate(players):
 
 class YahooTableScraper:
     def __init__(self, league, week, players):
-        print('Starting Job')
+        self.logger = logging.getLogger(__name__)
+        self.logger.info('Starting Job')
         self.player_stats = dict()
         self.url = URL.format(league=league, week=week)
         self.players = players
@@ -30,21 +32,21 @@ class YahooTableScraper:
         for i in range(0,11):
             if self.players[i] not in crawled:
                 url = self.url + str(i)
-                print('Fetching game at url: ' + url)
+                self.logger.info('Fetching game at url: ' + url)
                 self.driver.get(url)
-                print('connecting')
+                self.logger.info('connecting')
                 elem = self.driver.find_elements_by_xpath(XPATH)
-                print('Connected')
+                self.logger.info('Connected')
                 teams = [el.text.split('\n') for el in elem]
                 for i, el in enumerate(teams):
-                    print('Grab Player')
+                    self.logger.info('Grab Player')
                     opp = teams[abs(i - 1)]
                     stats = el
                     stats.append(opp[0])
                     player_id = stats[0]
                     self.player_stats[player_id] = stats[1:]
                     crawled.add(player_id)
-                    print('Done Grabbing')
+                    self.logger.info('Done Grabbing')
 
 
 
@@ -55,13 +57,14 @@ class YahooTableScraper:
 
 
 if __name__ == "__main__":
+    log = logging.getLogger('Test')
     s = YahooTableScraper(LEAGUE, 1, PLAYERS)
-    print('boop')
+    log.info('boop')
     s.run()
-    print('boop')
+    log.info('boop')
     for p, i in s.player_stats.items():
-        print(p)
-        print(i)
+        log.info(p)
+        log.info(i)
     with open('player_stats.pkl', "wb") as file:
         pickle.dump(s.player_stats, file)
-    print('boop')
+    log.info('boop')
