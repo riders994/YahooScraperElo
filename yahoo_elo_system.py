@@ -9,7 +9,7 @@ import pickle
 parser = argparse.ArgumentParser()
 
 LEAGUE = '10560'
-WEEK = '1:2'
+WEEK = '21:24'
 PLAYER_PICKLE_PATH = './players.pkl'
 PLAYERS = dict()
 
@@ -17,6 +17,7 @@ with open(PLAYER_PICKLE_PATH, "rb") as pkl:
     players = pickle.load(pkl)
 for i, p in enumerate(players):
     PLAYERS[i] = p
+
 
 def week_formatter(week):
     s = week.split(':')
@@ -31,13 +32,13 @@ class YahooEloSystem:
     def __init__(self, league, week, players, stats=False):
         self.league = league
         self.players = players
-        self.week, self.multi= week_formatter(week)
+        self.week, self.multi = week_formatter(week)
+        self.scraper = YahooTableScraper(self.league, self.players)
         self.stats = stats
         self.logger = logging.getLogger(__name__)
 
     def _scrape(self):
-        self.scraper = YahooTableScraper(self.league, self.week, self.players)
-        self.scraper.run()
+        self.scraper.run(self.week)
 
     def _format(self, scraper):
         self.formatter = WeeklyFormatter(self.week)

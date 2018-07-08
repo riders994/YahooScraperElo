@@ -91,20 +91,27 @@ class EloCalc:
             player_row_dict = {player: i for i, player in enumerate(self.weekly_frame.index)}
             calced = set()
             vals = frame['true_score']
+            playoff = False
             for player_1_name in self.weekly_frame.index:
                 if player_1_name not in calced:
                     calced.add(player_1_name)
                     p1_id = player_row_dict[player_1_name]
                     player_2_name = frame['opponent'][player_1_name]
-                    calced.add(player_2_name)
-                    self.logger.info('Calculating for %s vs. %s', player_1_name, player_2_name)
-                    p2_id = player_row_dict[player_2_name]
-                    player_1 = [self.weekly_frame.iloc[p1_id, self.week - 1] * 1.0, vals[player_1_name]]
-                    player_2 = [self.weekly_frame.iloc[p2_id, self.week - 1] * 1.0, vals[player_2_name]]
-                    scores = elo_calc(player_1, player_2, k=40)
-                    self.logger.info('Adding scores to new week')
-                    new_week[p1_id] = scores[0]
-                    new_week[p2_id] = scores[1]
+                    try:
+                        p2_id = player_row_dict[player_2_name]
+                    except KeyError:
+                        self.logger.info("It's the playoffs, and there's no opponent")
+                        new_week[p1_id] = self.weekly_frame.iloc[p1_id, self.week - 1] * 1.0
+                        playoff = True
+                    if not playoff:
+                        self.logger.info('Calculating for %s vs. %s', player_1_name, player_2_name)
+                        player_1 = [self.weekly_frame.iloc[p1_id, self.week - 1] * 1.0, vals[player_1_name]]
+                        player_2 = [self.weekly_frame.iloc[p2_id, self.week - 1] * 1.0, vals[player_2_name]]
+                        scores = elo_calc(player_1, player_2, k=40)
+                        self.logger.info('Adding scores to new week')
+                        new_week[p1_id] = scores[0]
+                        new_week[p2_id] = scores[1]
+                    playoff = False
             self.logger.info('Writing to frame')
             self.weekly_frame['week_{}'.format(self.week)] = new_week
 

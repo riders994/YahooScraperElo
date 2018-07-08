@@ -2,7 +2,8 @@ from selenium import webdriver
 import logging
 import pickle
 
-URL = "https://basketball.fantasysports.yahoo.com/nba/{league}/matchup?week={week}&module=matchup&mid1="
+URL_PART_1 = "https://basketball.fantasysports.yahoo.com/nba/{league}/matchup?week="
+URL_PART_2 = "{week}&module=matchup&mid1="
 LEAGUE = '10560'
 XPATH = '//section[@id="matchup-wall-header"]/table/tbody/tr'
 PLAYER_PICKLE_PATH = './players.pkl'
@@ -15,11 +16,12 @@ for i, p in enumerate(players):
 
 
 class YahooTableScraper:
-    def __init__(self, league, week, players):
+    def __init__(self, league, players):
         self.logger = logging.getLogger(__name__)
+        self.logger.setLevel(logging.getLevelName('INFO'))
         self.logger.info('Starting Job')
         self.player_stats = dict()
-        self.url = URL.format(league=league, week=week)
+        self.url = URL_PART_1.format(league=league)
         self.players = players
 
         pass
@@ -27,11 +29,12 @@ class YahooTableScraper:
     def _connect(self):
         self.driver = webdriver.Firefox()
 
-    def _crawl(self):
+    def _crawl(self, week):
         crawled = set()
+        url_piece = self.url + URL_PART_2.format(week=week)
         for i in range(0,11):
             if self.players[i] not in crawled:
-                url = self.url + str(i)
+                url = url_piece + str(i)
                 self.logger.info('Fetching game at url: ' + url)
                 self.driver.get(url)
                 self.logger.info('connecting')
@@ -51,9 +54,9 @@ class YahooTableScraper:
 
 
 
-    def run(self):
+    def run(self, week):
         self._connect()
-        self._crawl()
+        self._crawl(week)
 
 
 if __name__ == "__main__":
