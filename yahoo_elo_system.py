@@ -8,8 +8,8 @@ import pickle
 
 parser = argparse.ArgumentParser()
 
-LEAGUE = '10560'
-WEEK = '21:24'
+LEAGUE = '5726'
+WEEK = '1'
 PLAYER_PICKLE_PATH = './players.pkl'
 PLAYERS = dict()
 
@@ -60,8 +60,8 @@ class YahooEloSystem:
             self.run_multiple()
         else:
             self._scrape()
-            self._format(self.scraper.player_stats)
-            self._elo()
+            # self._format(self.scraper.player_stats)
+            # self._elo()
 
 
 if __name__ == "__main__":

@@ -4,10 +4,11 @@ import pickle
 
 URL_PART_1 = "https://basketball.fantasysports.yahoo.com/nba/{league}/matchup?week="
 URL_PART_2 = "{week}&module=matchup&mid1="
-LEAGUE = '10560'
+LEAGUE = '5726'
 XPATH = '//section[@id="matchup-wall-header"]/table/tbody/tr'
 PLAYER_PICKLE_PATH = './players.pkl'
 PLAYERS = dict()
+WEEK = '1'
 
 with open(PLAYER_PICKLE_PATH, "rb") as file:
     players = pickle.load(file)
@@ -16,11 +17,12 @@ for i, p in enumerate(players):
 
 
 class YahooTableScraper:
+    logger = logging.getLogger(__name__)
+    logger.setLevel(logging.getLevelName('INFO'))
+    logger.info('Starting Job')
+    player_stats = dict()
+
     def __init__(self, league, players):
-        self.logger = logging.getLogger(__name__)
-        self.logger.setLevel(logging.getLevelName('INFO'))
-        self.logger.info('Starting Job')
-        self.player_stats = dict()
         self.url = URL_PART_1.format(league=league)
         self.players = players
 
@@ -61,9 +63,9 @@ class YahooTableScraper:
 
 if __name__ == "__main__":
     log = logging.getLogger('Test')
-    s = YahooTableScraper(LEAGUE, 1, PLAYERS)
+    s = YahooTableScraper(LEAGUE, PLAYERS)
     log.info('boop')
-    s.run()
+    s.run(WEEK)
     log.info('boop')
     for p, i in s.player_stats.items():
         log.info(p)
