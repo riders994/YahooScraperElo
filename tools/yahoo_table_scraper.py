@@ -16,10 +16,13 @@ for i, p in enumerate(players):
     PLAYERS[i] = p
 
 
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.getLevelName('INFO'))
+logger.info('Starting Job')
+
+
 class YahooTableScraper:
-    logger = logging.getLogger(__name__)
-    logger.setLevel(logging.getLevelName('INFO'))
-    logger.info('Starting Job')
+
     player_stats = dict()
 
     def __init__(self, league, players):
@@ -37,21 +40,21 @@ class YahooTableScraper:
         for i in range(0,11):
             if self.players[i] not in crawled:
                 url = url_piece + str(i)
-                self.logger.info('Fetching game at url: ' + url)
+                logger.info('Fetching game at url: ' + url)
                 self.driver.get(url)
-                self.logger.info('connecting')
+                logger.info('connecting')
                 elem = self.driver.find_elements_by_xpath(XPATH)
-                self.logger.info('Connected')
+                logger.info('Connected')
                 teams = [el.text.split('\n') for el in elem]
                 for i, el in enumerate(teams):
-                    self.logger.info('Grab Player')
+                    logger.info('Grab Player')
                     opp = teams[abs(i - 1)]
                     stats = el
                     stats.append(opp[0])
                     player_id = stats[0]
                     self.player_stats[player_id] = stats[1:]
                     crawled.add(player_id)
-                    self.logger.info('Done Grabbing')
+                    logger.info('Done Grabbing')
 
 
 

@@ -5,9 +5,11 @@ import logging
 
 PLAYER_PICKLE_PATH = './players.pkl'
 WEEK = 1
-FRAME = pd.read_csv('./weekly_stats/week_{}.csv'.format(WEEK), index_col=0)
 FULL_ROWS = ['fgpct', 'ftpct', 'threes', 'points', 'rebounds', 'assists', 'steals', 'blocks', 'turnovers', 'true_score',
              'week']
+
+
+_logger = logging.getLogger(__name__)
 
 
 def elo_calc(player_1, player_2, k=60):
@@ -22,110 +24,155 @@ def elo_calc(player_1, player_2, k=60):
 
 
 class EloCalc:
-    def __init__(self, week, stats=False):
-        self.logger = logging.getLogger(__name__)
-        self.logger.info('Elo calculator started')
-        self.stats = stats
+    def __init__(self, week, stats):
+        _logger.info('Elo calculator started')
         if week:
-            self.logger.info('Calculating Elos for week {}'.format(week))
+            _logger.info('Calculating Elos for week {}'.format(week))
             self.week = week
             self._load()
             if not self._verify():
-                self.logger.info('Error verifying. Make sure you have data for the previous week. Current week is {}'.format(week))
+                _logger.info(
+                    'Error verifying. Make sure you have data for the previous week. Current week is {}'.format(week)
+                )
                 raise ValueError
         else:
             self._generate()
 
     def _generate(self):
-        self.logger.info('Generating week 0 frame')
+        _logger.info('Generating week 0 frame')
         with open(PLAYER_PICKLE_PATH, "rb") as pkl:
             players = pickle.load(pkl)
-            self.logger.info(players)
+            _logger.info(players)
         players = players[1:]
-        if self.stats:
-            self.logger.info('Generating frame for full stat Elos')
-            self.weekly_frame = pd.DataFrame({player: [1500] * len(players) for player in players}, index=FULL_ROWS)
-            self.weekly_frame['week'] = 0
-        else:
-            self.logger.info('Generating Win/Loss only frame')
-            self.weekly_frame = pd.DataFrame({'week_0': [1500] * len(players)}, index=players)
+        _logger.info('Generating Win/Loss only frame')
+        self.weekly_frame = pd.DataFrame({'week_0': [1500] * len(players)}, index=players)
 
     def _load(self):
-        if self.stats:
-                self.logger.info('Loading full single frame for Elos')
-                try:
-                    self.weekly_frame = pd.read_csv('./elo/weekly_elo_full_week_{}.csv'.format(self.week - 1))
-                    self.logger.info('File successfully loaded')
-                except FileNotFoundError:
-                    self.logger.info('File not found, generating')
-                    self._generate()
-                except Exception as e:
-                    raise e
-        else:
-            try:
-                self.weekly_frame = pd.read_csv('./elo/weekly_elo.csv', index_col=0)
-            except FileNotFoundError:
-                self._generate()
-            except Exception as e:
-                raise e
+        try:
+            self.weekly_frame = pd.read_csv('./elo/weekly_elo.csv', index_col=0)
+        except FileNotFoundError:
+            self._generate()
+        except Exception as e:
+            raise e
 
     def _verify(self):
-        if self.stats == 'full':
-            return self.weekly_frame.week[0] == (self.week - 1)
-        else:
-            return 'week_{}'.format(self.week - 1) in self.weekly_frame.columns
-
-    def _full_load(self):
-        pass
-
-    def _full_calc(self, frame):
-        self._full_load()
+        return 'week_{}'.format(self.week - 1) in self.weekly_frame.columns
 
     def _calc(self, frame):
-        if self.stats:
-            self._full_calc(frame)
-        else:
-            self.logger.info('Starting win/loss only calculation')
-            self.logger.info('Creating blank new week')
-            new_week = [0] * frame.shape[0]
-            player_row_dict = {player: i for i, player in enumerate(self.weekly_frame.index)}
-            calced = set()
-            vals = frame['true_score']
-            playoff = False
-            for player_1_name in self.weekly_frame.index:
-                if player_1_name not in calced:
-                    calced.add(player_1_name)
-                    p1_id = player_row_dict[player_1_name]
-                    player_2_name = frame['opponent'][player_1_name]
-                    try:
-                        p2_id = player_row_dict[player_2_name]
-                    except KeyError:
-                        self.logger.info("It's the playoffs, and there's no opponent")
-                        new_week[p1_id] = self.weekly_frame.iloc[p1_id, self.week - 1] * 1.0
-                        playoff = True
-                    if not playoff:
-                        self.logger.info('Calculating for %s vs. %s', player_1_name, player_2_name)
-                        player_1 = [self.weekly_frame.iloc[p1_id, self.week - 1] * 1.0, vals[player_1_name]]
-                        player_2 = [self.weekly_frame.iloc[p2_id, self.week - 1] * 1.0, vals[player_2_name]]
-                        scores = elo_calc(player_1, player_2, k=40)
-                        self.logger.info('Adding scores to new week')
-                        new_week[p1_id] = scores[0]
-                        new_week[p2_id] = scores[1]
-                    playoff = False
-            self.logger.info('Writing to frame')
-            self.weekly_frame['week_{}'.format(self.week)] = new_week
+        _logger.info('Starting win/loss only calculation')
+        _logger.info('Creating blank new week')
+        new_week = [0] * frame.shape[0]
+        player_row_dict = {player: i for i, player in enumerate(self.weekly_frame.index)}
+        calced = set()
+        vals = frame['true_score']
+        playoff = False
+        for player_1_name in self.weekly_frame.index:
+            if player_1_name not in calced:
+                calced.add(player_1_name)
+                p1_id = player_row_dict[player_1_name]
+                player_2_name = frame['opponent'][player_1_name]
+                try:
+                    p2_id = player_row_dict[player_2_name]
+                except KeyError:
+                    _logger.info("It's the playoffs, and there's no opponent")
+                    new_week[p1_id] = self.weekly_frame.iloc[p1_id, self.week - 1] * 1.0
+                    playoff = True
+                if not playoff:
+                    _logger.info('Calculating for %s vs. %s', player_1_name, player_2_name)
+                    player_1 = [self.weekly_frame.iloc[p1_id, self.week - 1] * 1.0, vals[player_1_name]]
+                    player_2 = [self.weekly_frame.iloc[p2_id, self.week - 1] * 1.0, vals[player_2_name]]
+                    scores = elo_calc(player_1, player_2, k=40)
+                    _logger.info('Adding scores to new week')
+                    new_week[p1_id] = scores[0]
+                    new_week[p2_id] = scores[1]
+                playoff = False
+        _logger.info('Writing to frame')
+        self.weekly_frame['week_{}'.format(self.week)] = new_week
 
     def _write(self):
-        if self.stats:
-            if self.week:
-                self.logger.info('Writing full frame for week %s', self.week)
-                self.weekly_frame.to_csv('./elo/weekly_elo_full_week_{}.csv'.format(self.week))
-            else:
-                self.logger.info('Writing week 0 frame')
-                self.weekly_frame.to_csv('./elo/weekly_elo_full_week')
+        _logger.info('Updating weekly elos for week %s', self.week)
+        self.weekly_frame.to_csv('./elo/weekly_elo.csv')
+
+    def run(self, frame):
+        if self.week:
+            self._calc(frame)
+        self._write()
+
+
+class StatEloCalc:
+    def __init__(self, week):
+        _logger.info('Elo calculator started')
+        if week:
+            _logger.info('Calculating Elos for week {}'.format(week))
+            self.week = week
+            self._load()
+            if not self._verify():
+                _logger.info(
+                    'Error verifying. Make sure you have data for the previous week. Current week is {}'.format(week)
+                )
+                raise ValueError
         else:
-            self.logger.info('Updating weekly elos for week %s', self.week)
-            self.weekly_frame.to_csv('./elo/weekly_elo.csv')
+            self._generate()
+
+    def _load(self):
+        try:
+            self.weekly_frame = pd.read_csv('./elo/weekly_stats_elo.csv', index_col=0)
+        except FileNotFoundError:
+            self._generate()
+        except Exception as e:
+            raise e
+
+    def _verify(self):
+        return sum(self.weekly_frame.week == 'week_{}'.format(self.week))
+
+    def _generate(self):
+        _logger.info('Generating week 0 frame')
+        with open(PLAYER_PICKLE_PATH, "rb") as pkl:
+            players = pickle.load(pkl)
+            _logger.info(players)
+        players = players[1:]
+        weekly_num = len(players) * 9
+        _logger.info('Generating Stats frame')
+        self.weekly_frame = pd.DataFrame({
+            'elo': [1500] * weekly_num,
+            'week': ['week_0'] * weekly_num,
+            'player': players * 9
+        }, index=range(weekly_num))
+
+    def _calc(self, frame):
+        _logger.info('Starting stats calculation')
+        _logger.info('Creating blank new week')
+        new_week = [0] * frame.shape[0]
+        player_row_dict = {player: i for i, player in enumerate(self.weekly_frame.index)}
+        calced = set()
+        vals = frame['true_score']
+        playoff = False
+        for player_1_name in self.weekly_frame.index:
+            if player_1_name not in calced:
+                calced.add(player_1_name)
+                p1_id = player_row_dict[player_1_name]
+                player_2_name = frame['opponent'][player_1_name]
+                try:
+                    p2_id = player_row_dict[player_2_name]
+                except KeyError:
+                    _logger.info("It's the playoffs, and there's no opponent")
+                    new_week[p1_id] = self.weekly_frame.iloc[p1_id, self.week - 1] * 1.0
+                    playoff = True
+                if not playoff:
+                    _logger.info('Calculating for %s vs. %s', player_1_name, player_2_name)
+                    player_1 = [self.weekly_frame.iloc[p1_id, self.week - 1] * 1.0, vals[player_1_name]]
+                    player_2 = [self.weekly_frame.iloc[p2_id, self.week - 1] * 1.0, vals[player_2_name]]
+                    scores = elo_calc(player_1, player_2, k=40)
+                    _logger.info('Adding scores to new week')
+                    new_week[p1_id] = scores[0]
+                    new_week[p2_id] = scores[1]
+                playoff = False
+        _logger.info('Writing to frame')
+        self.weekly_frame['week_{}'.format(self.week)] = new_week
+
+    def _write(self):
+        _logger.info('Updating weekly elos for week %s', self.week)
+        self.weekly_frame.to_csv('./elo/weekly_elo.csv')
 
     def run(self, frame):
         if self.week:
@@ -134,5 +181,6 @@ class EloCalc:
 
 
 if __name__ == "__main__":
-    calc = EloCalc(WEEK)
+    FRAME = pd.read_csv('./weekly_stats/week_{}.csv'.format(WEEK), index_col=0)
+    calc = EloCalc(WEEK, False)
     calc.run(FRAME)
