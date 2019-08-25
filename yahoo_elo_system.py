@@ -14,8 +14,8 @@ PLAYER_PICKLE_PATH = './players.pkl'
 PLAYERS = dict()
 
 with open(PLAYER_PICKLE_PATH, "rb") as pkl:
-    players = pickle.load(pkl)
-for i, p in enumerate(players):
+    players_pkl = pickle.load(pkl)
+for i, p in enumerate(players_pkl):
     PLAYERS[i] = p
 
 
