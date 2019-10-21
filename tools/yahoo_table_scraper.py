@@ -1,19 +1,17 @@
 from selenium import webdriver
 import logging
+import json
 import pickle
 
 URL_PART_1 = "https://basketball.fantasysports.yahoo.com/nba/{league}/matchup?week="
 URL_PART_2 = "{week}&module=matchup&mid1="
-LEAGUE = '5726'
+LEAGUE = '12682'
 XPATH = '//section[@id="matchup-wall-header"]/table/tbody/tr'
-PLAYER_PICKLE_PATH = './players.pkl'
-PLAYERS = dict()
+PLAYER_INFO = './data/players.json'
 WEEK = '1'
 
-with open(PLAYER_PICKLE_PATH, "rb") as file:
-    players = pickle.load(file)
-for i, p in enumerate(players):
-    PLAYERS[i] = p
+with open(PLAYER_INFO, "rb") as file:
+    PLAYERS = json.load(file)
 
 
 logger = logging.getLogger(__name__)
@@ -37,7 +35,7 @@ class YahooTableScraper:
     def _crawl(self, week):
         crawled = set()
         url_piece = self.url + URL_PART_2.format(week=week)
-        for i in range(0,11):
+        for i in range(0, 11):
             if self.players[i] not in crawled:
                 url = url_piece + str(i)
                 logger.info('Fetching game at url: ' + url)
@@ -56,9 +54,6 @@ class YahooTableScraper:
                     crawled.add(player_id)
                     logger.info('Done Grabbing')
 
-
-
-
     def run(self, week):
         self._connect()
         self._crawl(week)
@@ -73,6 +68,6 @@ if __name__ == "__main__":
     for p, i in s.player_stats.items():
         log.info(p)
         log.info(i)
-    with open('player_stats.pkl', "wb") as file:
+    with open('./data/player_stats.pkl', "wb") as file:
         pickle.dump(s.player_stats, file)
     log.info('boop')

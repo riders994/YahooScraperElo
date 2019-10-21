@@ -3,20 +3,17 @@ from tools.weekly_formatter import WeeklyFormatter
 from tools.elo_calculator import EloCalc
 import logging
 import argparse
-import pickle
+import json
 
 
 parser = argparse.ArgumentParser()
 
 LEAGUE = '5726'
 WEEK = '1'
-PLAYER_PICKLE_PATH = './players.pkl'
-PLAYERS = dict()
+PLAYER_INFO = './data/players.json'
 
-with open(PLAYER_PICKLE_PATH, "rb") as pkl:
-    players_pkl = pickle.load(pkl)
-for i, p in enumerate(players_pkl):
-    PLAYERS[i] = p
+with open(PLAYER_INFO, "rb") as data:
+    PLAYERS = json.load(data)
 
 
 def week_formatter(week):

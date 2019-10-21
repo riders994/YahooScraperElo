@@ -1,42 +1,60 @@
 from selenium import webdriver
 import logging
-import pickle
+import json
 
 URL = "https://basketball.fantasysports.yahoo.com/nba/{league}/matchup?week=1&module=matchup&mid1="
-LEAGUE = '5726'
+LEAGUE = '12682'
 XPATH = '//section[@id="matchup-wall-header"]/table/tbody/tr'
-PLAYER_PICKLE_PATH = './players.pkl'
+PLAYER_SAVE_PATH = './data/players.json'
+PLAYERS = 12
 
 
 class PlayerGenerator:
     logger = logging.getLogger(__name__)
     logger.setLevel(logging.getLevelName('INFO'))
     logger.info('Starting Job')
-    player_nums = {0: '-/-'}
+    player_dict = {'0': {'names': ['-/-'], 'person': 'none'}}
 
     def __init__(self, league):
         self.url = URL.format(league=league)
+
+    def _read(self):
+        try:
+            with open(PLAYER_SAVE_PATH, "rb") as file:
+                data = json.load(file)
+            self.player_dict.update(data)
+        except FileNotFoundError:
+            pass
 
     def _connect(self):
         self.driver = webdriver.Firefox()
 
     def _scrape(self):
-        for i in range(0, 11):
-            url = self.url + str(i)
+        for i in range(PLAYERS + 1):
+            s = str(i)
+            url = self.url + s
             self.driver.get(url)
             elem = self.driver.find_elements_by_xpath(XPATH)
             team = elem[0].text.split('\n')
             print(team)
-            self.player_nums[i] = team[0]
+            player = self.player_dict.get(s)
+            if player:
+                names = player['names']
+                names.append(team[0])
+                self.player_dict[s]['names'] = list(set(names))
+            else:
+                self.player_dict.update({s: {'names': [team[0]], 'person': team[0]}})
 
     def _write(self):
-        with open(PLAYER_PICKLE_PATH, 'wb') as file:
-            pickle.dump(self.player_nums, file)
+        with open(PLAYER_SAVE_PATH, "w") as file:
+            json.dump(self.player_dict, file)
 
     def run(self):
+        self._read()
         self._connect()
         self._scrape()
         self._write()
+
 
 if __name__ == '__main__':
     pg = PlayerGenerator(LEAGUE)

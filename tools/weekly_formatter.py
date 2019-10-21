@@ -99,7 +99,7 @@ class WeeklyFormatter:
 
 
 if __name__ == '__main__':
-    with open('player_stats.pkl', 'rb') as file:
+    with open('./data/player_stats.pkl', 'rb') as file:
         stats_dict = pickle.load(file)
 
     frm = WeeklyFormatter(WEEK)
