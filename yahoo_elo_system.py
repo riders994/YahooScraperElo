@@ -8,7 +8,7 @@ import json
 
 parser = argparse.ArgumentParser()
 
-LEAGUE = '5726'
+LEAGUE = '12682'
 WEEK = '1'
 PLAYER_INFO = './data/players.json'
 

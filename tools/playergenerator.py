@@ -38,12 +38,13 @@ class PlayerGenerator:
             team = elem[0].text.split('\n')
             print(team)
             player = self.player_dict.get(s)
+            curr = team[0]
             if player:
                 names = player['names']
-                names.append(team[0])
-                self.player_dict[s]['names'] = list(set(names))
+                names.append(curr)
+                self.player_dict[s].update({'names': list(set(names)), 'current': curr})
             else:
-                self.player_dict.update({s: {'names': [team[0]], 'person': team[0]}})
+                self.player_dict.update({s: {'names': [curr], 'person': curr, 'current': curr}})
 
     def _write(self):
         with open(PLAYER_SAVE_PATH, "w") as file:

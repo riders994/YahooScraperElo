@@ -33,26 +33,29 @@ class YahooTableScraper:
         self.driver = webdriver.Firefox()
 
     def _crawl(self, week):
-        crawled = set()
+        crawled = {'0', '-/-'}
         url_piece = self.url + URL_PART_2.format(week=week)
-        for i in range(0, 11):
-            if self.players[i] not in crawled:
-                url = url_piece + str(i)
+        for i in range(len(self.players)):
+            place = str(i)
+            if self.players[place]['current'] not in crawled:
+                url = url_piece + place
                 logger.info('Fetching game at url: ' + url)
                 self.driver.get(url)
                 logger.info('connecting')
                 elem = self.driver.find_elements_by_xpath(XPATH)
                 logger.info('Connected')
                 teams = [el.text.split('\n') for el in elem]
-                for i, el in enumerate(teams):
+                for j, el in enumerate(teams):
                     logger.info('Grab Player')
-                    opp = teams[abs(i - 1)]
+                    opp = teams[abs(j - 1)]
                     stats = el
                     stats.append(opp[0])
                     player_id = stats[0]
                     self.player_stats[player_id] = stats[1:]
                     crawled.add(player_id)
-                    logger.info('Done Grabbing')
+            else:
+                logger.info('Player already grabbed')
+        logger.info('Done Grabbing')
 
     def run(self, week):
         self._connect()
@@ -65,9 +68,9 @@ if __name__ == "__main__":
     log.info('boop')
     s.run(WEEK)
     log.info('boop')
-    for p, i in s.player_stats.items():
+    for p, item in s.player_stats.items():
         log.info(p)
-        log.info(i)
+        log.info(item)
     with open('./data/player_stats.pkl', "wb") as file:
         pickle.dump(s.player_stats, file)
     log.info('boop')
