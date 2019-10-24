@@ -21,6 +21,8 @@ def _purge_stars(column):
 
 
 class WeeklyFormatter:
+    frame = None
+
     def __init__(self, week):
         _logger.setLevel(logging.getLevelName('INFO'))
         _logger.info('Formatter started')
@@ -35,7 +37,8 @@ class WeeklyFormatter:
             if team not in scored:
                 home = frame.loc[team]
                 away = home.opponent
-                _logger.info('Fixing scores for {home} and {away} for week {week}'.format(home=team, away=away, week=self.week))
+                _logger.info('Fixing scores for {home} and {away} for week {week}'.format(home=team, away=away,
+                                                                                          week=self.week))
                 home_score = home.score * 1.0
                 try:
                     away_score = frame.loc[away].score * 1.0
@@ -90,12 +93,13 @@ class WeeklyFormatter:
         _logger.info('Scores fixed')
 
     def _write(self):
-        self.frame.to_csv('./weekly_stats/week_{}.csv'.format(self.week))
+        self.frame.to_csv('./data/weekly_stats/week_{}.csv'.format(self.week))
 
     def run(self, player_dict):
-        _logger.info('Loading testing dictionary.')
-        self._format(player_dict)
-        self._write()
+        if self.week:
+            _logger.info('Loading testing dictionary.')
+            self._format(player_dict)
+            self._write()
 
 
 if __name__ == '__main__':
