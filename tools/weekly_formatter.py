@@ -1,8 +1,10 @@
 import pandas as pd
 import logging
 import pickle
+import json
 
 
+PLAYER_INFO = './data/players.json'
 PLAYER_PICKLE_PATH = './player_stats.pkl'
 INIT_COLS = ['fgmfga', 'fgpct', 'ftmfta', 'ftpct', 'threes', 'points', 'rebounds', 'assists', 'steals', 'blocks',
              'turnovers', 'score', 'opponent']
@@ -28,6 +30,13 @@ class WeeklyFormatter:
         _logger.info('Formatter started')
         self.week = week
         self.score_dict = dict()
+        self.player_info = self._read()
+
+    @staticmethod
+    def _read():
+        with open(PLAYER_INFO, "rb") as data:
+            players = json.load(data)
+        return {value['current']: value['person'] for key, value in players.items()}
 
     def _fix_scores(self, frame):
         _logger.info('Fixing scores')
@@ -63,6 +72,8 @@ class WeeklyFormatter:
 
     def _format(self, player_dict):
         frame = pd.DataFrame.from_dict(player_dict, orient='index', columns=INIT_COLS)
+        frame.index = [self.player_info[ind] for ind in frame.index]
+        frame.opponent.replace(self.player_info, inplace=True)
         _logger.info('Loaded frame')
         for col in ['-/-', '0']:
             try:
@@ -93,7 +104,7 @@ class WeeklyFormatter:
         _logger.info('Scores fixed')
 
     def _write(self):
-        self.frame.to_csv('./data/weekly_stats/week_{}.csv'.format(self.week))
+        self.frame.to_csv('./data/elo/week_{}.csv'.format(self.week))
 
     def run(self, player_dict):
         if self.week:

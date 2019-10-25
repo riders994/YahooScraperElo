@@ -56,6 +56,7 @@ class YahooTableScraper:
             else:
                 logger.info('Player already grabbed')
         logger.info('Done Grabbing')
+        self.driver.close()
 
     def run(self, week):
         self._connect()

@@ -9,7 +9,7 @@ import json
 parser = argparse.ArgumentParser()
 
 LEAGUE = '12682'
-WEEK = '0'
+WEEK = '1'
 PLAYER_INFO = './data/players.json'
 
 with open(PLAYER_INFO, "rb") as data:
@@ -21,7 +21,7 @@ def week_formatter(week):
     if len(s) - 1:
         return range(int(s[0]), int(s[-1]) + 1), True
     else:
-        return week, False
+        return int(week), False
 
 
 class YahooEloSystem:
@@ -42,7 +42,7 @@ class YahooEloSystem:
         self.formatter.run(scraper)
 
     def _elo(self):
-        self.elo_calc = EloCalc(self.week, self.stats)
+        self.elo_calc = EloCalc(self.week)
         self.elo_calc.run(self.formatter.frame)
 
     def run_multiple(self):
@@ -58,7 +58,7 @@ class YahooEloSystem:
         else:
             self._scrape()
             self._format(self.scraper.player_stats)
-            # self._elo()
+            self._elo()
 
 
 if __name__ == "__main__":

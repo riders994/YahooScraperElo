@@ -6,3 +6,4 @@
 geckodriver*
 *.pkl
 *.csv
+*.log
