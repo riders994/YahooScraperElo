@@ -30,7 +30,7 @@ class YahooTableScraper:
         pass
 
     def _connect(self):
-        self.driver = webdriver.Firefox()
+        self.driver = webdriver.Chrome()
 
     def _crawl(self, week):
         crawled = {'0', '-/-'}

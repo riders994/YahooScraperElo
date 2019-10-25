@@ -26,6 +26,7 @@ def elo_calc(player_1, player_2, k=60):
 class EloCalc:
 
     week = 0
+    weekly_frame = None
 
     def __init__(self, week):
         _logger.info('Elo calculator started')
@@ -54,7 +55,7 @@ class EloCalc:
 
     def _load(self):
         try:
-            self.weekly_frame = pd.read_csv('./data/elo/weekly_elo.csv', index_col=0)
+            self.weekly_frame = pd.read_csv('./data/weekly_elo.csv', index_col=0)
         except FileNotFoundError:
             self._generate()
         except Exception as e:
@@ -96,7 +97,7 @@ class EloCalc:
 
     def _write(self):
         _logger.info('Updating weekly elos for week %s', self.week)
-        self.weekly_frame.to_csv('./data/elo/weekly_elo.csv')
+        self.weekly_frame.to_csv('./data/weekly_elo.csv')
 
     def run(self, frame):
         if self.week:

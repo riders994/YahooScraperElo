@@ -1,4 +1,5 @@
 import pandas as pd
+import numpy as np
 import logging
 import pickle
 import json
@@ -12,6 +13,7 @@ KEEP_COLS = ['fgm', 'fga', 'fgpct', 'ftm', 'fta', 'ftpct', 'threes', 'points', '
              , 'turnovers', 'true_score', 'opponent', 'week']
 INT_COLS = ['fgm', 'fga', 'ftm', 'fta', 'threes', 'points', 'rebounds', 'assists', 'steals', 'blocks', 'turnovers',
             'week']
+ROTO_COLS = ['fgpct', 'ftpct', 'threes', 'points', 'rebounds', 'assists', 'steals', 'blocks', 'turnovers']
 FLT_COLS = ['fgpct', 'ftpct', 'score']
 WEEK = 1
 
@@ -24,6 +26,7 @@ def _purge_stars(column):
 
 class WeeklyFormatter:
     frame = None
+    roto = None
 
     def __init__(self, week):
         _logger.setLevel(logging.getLevelName('INFO'))
@@ -103,13 +106,21 @@ class WeeklyFormatter:
         self.frame = self._fix_scores(frame)
         _logger.info('Scores fixed')
 
-    def _write(self):
-        self.frame.to_csv('./data/elo/week_{}.csv'.format(self.week))
+    def _roto(self):
+        roto_scores = self.frame[ROTO_COLS].values.argsort(axis=0).argsort(axis=0) + 1
+        rotos = roto_scores.sum(axis=1)
+        self.frame['roto'] = rotos
+        self.frame['roto_rank'] = rotos.argsort(axis=0).argsort(axis=0) + 1
 
-    def run(self, player_dict):
+    def _write(self):
+        self.frame.to_csv('./data/week_{}.csv'.format(self.week))
+
+    def run(self, player_dict, roto=True):
         if self.week:
             _logger.info('Loading testing dictionary.')
             self._format(player_dict)
+            if roto:
+                self._roto()
             self._write()
 
 
