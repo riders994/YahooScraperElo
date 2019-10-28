@@ -1,6 +1,6 @@
-from tools.yahoo_table_scraper import YahooTableScraper
-from tools.weekly_formatter import WeeklyFormatter
-from tools.elo_calculator import EloCalc
+from yahooelosystem.tools.yahoo_table_scraper import YahooTableScraper
+from yahooelosystem.tools.weekly_formatter import WeeklyFormatter
+from yahooelosystem.tools.elo_calculator import EloCalc
 import logging
 import argparse
 import json
