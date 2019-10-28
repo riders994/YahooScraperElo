@@ -1,7 +1,7 @@
 from setuptools import setup
 
 setup(
-    name="YahooEloScraper",
+    name="YahooScraperElo",
     version='1.0',
     packages=['yahooelosystem'],
 )
