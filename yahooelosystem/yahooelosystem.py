@@ -1,66 +1,147 @@
-from yahooelosystem.tools.yahoo_table_scraper import YahooTableScraper
-from yahooelosystem.tools.weekly_formatter import WeeklyFormatter
-from yahooelosystem.tools.elo_calculator import EloCalc
+import os
 import logging
 import argparse
-import json
-
+import pandas as pd
+from .tools import WeeklyFormatter
+from yahooscrapingtools import YahooScrapingTools
+from .tools import EloCalc
 
 parser = argparse.ArgumentParser()
 
-LEAGUE = '12682'
-WEEK = '1'
-PLAYER_INFO = './data/players.json'
+LEAGUE = {
+    'yid': '395.l.12682',
+    'year': 2019,
+    'leagueid': 0,
+    'team_map': {
+        '395.l.12682.t.2': 1,
+        '395.l.12682.t.12': 11,
+        '395.l.12682.t.6': 3,
+        '395.l.12682.t.1': 0,
+        '395.l.12682.t.3': 6,
+        '395.l.12682.t.4': 7,
+        '395.l.12682.t.9': 5,
+        '395.l.12682.t.8': 9,
+        '395.l.12682.t.7': 8,
+        '395.l.12682.t.5': 2,
+        '395.l.12682.t.11': 10,
+        '395.l.12682.t.10': 4
+    }
+}
 
-with open(PLAYER_INFO, "rb") as data:
-    PLAYERS = json.load(data)
+WEEK = '1'
+
+MODES = {'csv', 'sql'}
+TABLES = ['weekly_elos']
 
 
 def week_formatter(week):
     s = week.split(':')
     if len(s) - 1:
-        return range(int(s[0]), int(s[-1]) + 1), True
+        try:
+            return range(int(s[0]), int(s[-1]) + 1), True
+        except ValueError:
+            return
     else:
         return int(week), False
 
 
 class YahooEloSystem:
 
-    def __init__(self, league, week, players, stats=False):
-        self.league = league
-        self.players = players
+    loaded = False
+    scraper = None
+    formatter = None
+    calculator = None
+    data_model = dict()
+    _logger = logging.getLogger(__file__)
+
+    def __init__(self, league_info, week, scraper=None, creds=None, mode='csv', path=None):
+        self.mode = '.' + mode
+        self.creds = creds
+        self.league_info = league_info
         self.week, self.multi = week_formatter(week)
-        self.scraper = YahooTableScraper(self.league, self.players)
-        self.stats = stats
-        self.logger = logging.getLogger(__name__)
+        if path:
+            self.path = path
+        else:
+            self.path = os.getcwd()
+        if scraper:
+            self.scraper = scraper
+        else:
+            self._gen_scraper()
+        self.scraper.login()
 
-    def _scrape(self):
-        self.scraper.run(self.week)
+    def _set_mode(self, new_mode):
+        if new_mode not in MODES:
+            raise ValueError(f'Invalid mode: {new_mode}')
+        else:
+            self.mode = '.' + new_mode
 
-    def _format(self, scraper):
-        self.formatter = WeeklyFormatter(self.week)
-        self.formatter.run(scraper)
+    def _gen_scraper(self):
+        self.scraper = YahooScrapingTools(self.creds)
 
-    def _elo(self):
-        self.elo_calc = EloCalc(self.week)
-        self.elo_calc.run(self.formatter.frame)
+    def _load_pd(self):
+        for table in TABLES:
+            if table == 'weekly_stats':
+                pass
+            frame = pd.read_csv(os.path.join(self.path, 'resources', table + '.' + self.mode))
+            self.data_model.update({table: frame})
+        self.loaded = True
+
+    def _load_sql(self):
+        for table in TABLES:
+            if table == 'weekly_stats':
+                pass
+            frame = pd.read_csv(os.path.join(self.path, 'resources', table + self.mode))
+            self.data_model.update({table: frame})
+        self.loaded = True
+
+    def _load(self):
+        if self.mode == '.csv':
+            self._load_pd()
+
+    def _check_week(self, week=None):
+        if week:
+            return 'week_' + week in self.data_model['weekly_elos'].columns
+        return 'week_' + self.week in self.data_model['weekly_elos'].columns
+
+    def _set_formatter(self):
+        self.formatter = WeeklyFormatter(self.league_info)
+
+    def _set_calc(self):
+        self.calculator = EloCalc(self.league_info)
 
     def run_multiple(self):
         self.multi = False
-        week_stored = self.week
+        if len(self.week) - 1:
+            week_stored = self.week
+        else:
+            week_stored = range(self.week + 1)
         for i in week_stored:
             self.week = i
             self.run()
 
     def run(self):
+        if not self.formatter:
+            self._set_formatter()
+        if not self.calculator:
+            self._set_calc()
         if self.multi:
             self.run_multiple()
         else:
-            self._scrape()
-            self._format(self.scraper.player_stats)
-            self._elo()
+            if self.loaded:
+                if self._check_week():
+                    return self.data_model['weekly_elos']['week_' + self.week]
+                else:
+                    if self._check_week(self.week - 1):
+                        matchups = self.scraper.get_scoreboards(self.league_info['yid'], self.week)
+                        self.formatter.ingest(matchups, self.week)
+                        self.calculator.run(self.formatter.create_df(self.week), self.data_model['weekly_elos'])
+                    else:
+                        return 'Sorry, missing data'
+            else:
+                self._load()
+                self.run()
 
 
 if __name__ == "__main__":
-    sys = YahooEloSystem(LEAGUE, WEEK, PLAYERS)
+    sys = YahooEloSystem(LEAGUE, WEEK)
     sys.run()

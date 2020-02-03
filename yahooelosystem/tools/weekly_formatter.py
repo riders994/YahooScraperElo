@@ -1,132 +1,777 @@
-import pandas as pd
-import numpy as np
 import logging
-import pickle
-import json
+import numpy as np
+import pandas as pd
 
 
-PLAYER_INFO = './data/players.json'
-PLAYER_PICKLE_PATH = './player_stats.pkl'
-INIT_COLS = ['fgmfga', 'fgpct', 'ftmfta', 'ftpct', 'threes', 'points', 'rebounds', 'assists', 'steals', 'blocks',
-             'turnovers', 'score', 'opponent']
 KEEP_COLS = ['fgm', 'fga', 'fgpct', 'ftm', 'fta', 'ftpct', 'threes', 'points', 'rebounds', 'assists', 'steals', 'blocks'
              , 'turnovers', 'true_score', 'opponent', 'week']
-INT_COLS = ['fgm', 'fga', 'ftm', 'fta', 'threes', 'points', 'rebounds', 'assists', 'steals', 'blocks', 'turnovers',
-            'week']
+
 ROTO_COLS = ['fgpct', 'ftpct', 'threes', 'points', 'rebounds', 'assists', 'steals', 'blocks', 'turnovers']
 FLT_COLS = ['fgpct', 'ftpct', 'score']
-WEEK = 1
 
-_logger = logging.getLogger(__name__)
+WEEK = 14
+BOARD = {'0': {'matchup': {'week': '14',
+   'week_start': '2020-01-20',
+   'week_end': '2020-01-26',
+   'status': 'postevent',
+   'is_playoffs': '0',
+   'is_consolation': '0',
+   'is_tied': 0,
+   'winner_team_key': '395.l.12682.t.1',
+   'stat_winners': [{'stat_winner': {'stat_id': '5',
+      'winner_team_key': '395.l.12682.t.7'}},
+    {'stat_winner': {'stat_id': '8', 'winner_team_key': '395.l.12682.t.1'}},
+    {'stat_winner': {'stat_id': '10', 'winner_team_key': '395.l.12682.t.1'}},
+    {'stat_winner': {'stat_id': '12', 'winner_team_key': '395.l.12682.t.1'}},
+    {'stat_winner': {'stat_id': '15', 'winner_team_key': '395.l.12682.t.7'}},
+    {'stat_winner': {'stat_id': '16', 'winner_team_key': '395.l.12682.t.1'}},
+    {'stat_winner': {'stat_id': '17', 'winner_team_key': '395.l.12682.t.1'}},
+    {'stat_winner': {'stat_id': '18', 'winner_team_key': '395.l.12682.t.7'}},
+    {'stat_winner': {'stat_id': '19', 'winner_team_key': '395.l.12682.t.1'}}],
+   '0': {'teams': {'0': {'team': [[{'team_key': '395.l.12682.t.1'},
+        {'team_id': '1'},
+        {'name': 'Ball Drogo'},
+        {'is_owned_by_current_login': 1},
+        {'url': 'https://basketball.fantasysports.yahoo.com/nba/12682/1'},
+        {'team_logos': [{'team_logo': {'size': 'large',
+            'url': 'https://yahoofantasysports-res.cloudinary.com/image/upload/t_s192sq/fantasy-logos/25311436556_1abab68507.jpg'}}]},
+        {'division_id': '1'},
+        {'waiver_priority': 8},
+        [],
+        {'number_of_moves': '50'},
+        {'number_of_trades': '5'},
+        {'roster_adds': {'coverage_type': 'week',
+          'coverage_value': 15,
+          'value': '2'}},
+        [],
+        {'league_scoring_type': 'headone'},
+        [],
+        [],
+        {'has_draft_grade': 0},
+        [],
+        []],
+       {'team_stats': {'coverage_type': 'week',
+         'week': '14',
+         'stats': [{'stat': {'stat_id': '9004003', 'value': '235/501'}},
+          {'stat': {'stat_id': '5', 'value': '.469'}},
+          {'stat': {'stat_id': '9007006', 'value': '107/144'}},
+          {'stat': {'stat_id': '8', 'value': '.743'}},
+          {'stat': {'stat_id': '10', 'value': '87'}},
+          {'stat': {'stat_id': '12', 'value': '664'}},
+          {'stat': {'stat_id': '15', 'value': '230'}},
+          {'stat': {'stat_id': '16', 'value': '135'}},
+          {'stat': {'stat_id': '17', 'value': '52'}},
+          {'stat': {'stat_id': '18', 'value': '31'}},
+          {'stat': {'stat_id': '19', 'value': '63'}}]},
+        'team_points': {'coverage_type': 'week', 'week': '14', 'total': '6'},
+        'team_remaining_games': {'coverage_type': 'week',
+         'week': '14',
+         'total': {'remaining_games': 0,
+          'live_games': 0,
+          'completed_games': 47}}}]},
+     '1': {'team': [[{'team_key': '395.l.12682.t.7'},
+        {'team_id': '7'},
+        {'name': 'Paella Thomas'},
+        [],
+        {'url': 'https://basketball.fantasysports.yahoo.com/nba/12682/7'},
+        {'team_logos': [{'team_logo': {'size': 'large',
+            'url': 'https://s.yimg.com/cv/apiv2/default/nba/nba_8.png'}}]},
+        {'division_id': '2'},
+        {'waiver_priority': 5},
+        [],
+        {'number_of_moves': '1'},
+        {'number_of_trades': 0},
+        {'roster_adds': {'coverage_type': 'week',
+          'coverage_value': 15,
+          'value': '0'}},
+        [],
+        {'league_scoring_type': 'headone'},
+        [],
+        [],
+        {'has_draft_grade': 0},
+        [],
+        []],
+       {'team_stats': {'coverage_type': 'week',
+         'week': '14',
+         'stats': [{'stat': {'stat_id': '9004003', 'value': '222/431'}},
+          {'stat': {'stat_id': '5', 'value': '.515'}},
+          {'stat': {'stat_id': '9007006', 'value': '74/101'}},
+          {'stat': {'stat_id': '8', 'value': '.733'}},
+          {'stat': {'stat_id': '10', 'value': '67'}},
+          {'stat': {'stat_id': '12', 'value': '585'}},
+          {'stat': {'stat_id': '15', 'value': '255'}},
+          {'stat': {'stat_id': '16', 'value': '110'}},
+          {'stat': {'stat_id': '17', 'value': '28'}},
+          {'stat': {'stat_id': '18', 'value': '40'}},
+          {'stat': {'stat_id': '19', 'value': '69'}}]},
+        'team_points': {'coverage_type': 'week', 'week': '14', 'total': '3'},
+        'team_remaining_games': {'coverage_type': 'week',
+         'week': '14',
+         'total': {'remaining_games': 0,
+          'live_games': 0,
+          'completed_games': 47}}}]},
+     'count': 2}}}},
+ '1': {'matchup': {'week': '14',
+   'week_start': '2020-01-20',
+   'week_end': '2020-01-26',
+   'status': 'postevent',
+   'is_playoffs': '0',
+   'is_consolation': '0',
+   'is_tied': 0,
+   'winner_team_key': '395.l.12682.t.2',
+   'stat_winners': [{'stat_winner': {'stat_id': '5',
+      'winner_team_key': '395.l.12682.t.2'}},
+    {'stat_winner': {'stat_id': '8', 'winner_team_key': '395.l.12682.t.12'}},
+    {'stat_winner': {'stat_id': '10', 'winner_team_key': '395.l.12682.t.2'}},
+    {'stat_winner': {'stat_id': '12', 'winner_team_key': '395.l.12682.t.2'}},
+    {'stat_winner': {'stat_id': '15', 'winner_team_key': '395.l.12682.t.2'}},
+    {'stat_winner': {'stat_id': '16', 'winner_team_key': '395.l.12682.t.2'}},
+    {'stat_winner': {'stat_id': '17', 'winner_team_key': '395.l.12682.t.2'}},
+    {'stat_winner': {'stat_id': '18', 'winner_team_key': '395.l.12682.t.12'}},
+    {'stat_winner': {'stat_id': '19', 'winner_team_key': '395.l.12682.t.12'}}],
+   '0': {'teams': {'0': {'team': [[{'team_key': '395.l.12682.t.2'},
+        {'team_id': '2'},
+        {'name': 'Pascal’s Triangle'},
+        [],
+        {'url': 'https://basketball.fantasysports.yahoo.com/nba/12682/2'},
+        {'team_logos': [{'team_logo': {'size': 'large',
+            'url': 'https://yahoofantasysports-res.cloudinary.com/image/upload/t_s192sq/fantasy-logos/594e05b51caab78865596e01e0eff4706956c821568a31a2df6e5368ebe583c3.jpg'}}]},
+        {'division_id': '2'},
+        {'waiver_priority': 3},
+        [],
+        {'number_of_moves': '71'},
+        {'number_of_trades': '5'},
+        {'roster_adds': {'coverage_type': 'week',
+          'coverage_value': 15,
+          'value': '3'}},
+        [],
+        {'league_scoring_type': 'headone'},
+        [],
+        [],
+        {'has_draft_grade': 0},
+        [],
+        []],
+       {'team_stats': {'coverage_type': 'week',
+         'week': '14',
+         'stats': [{'stat': {'stat_id': '9004003', 'value': '324/644'}},
+          {'stat': {'stat_id': '5', 'value': '.503'}},
+          {'stat': {'stat_id': '9007006', 'value': '137/178'}},
+          {'stat': {'stat_id': '8', 'value': '.770'}},
+          {'stat': {'stat_id': '10', 'value': '100'}},
+          {'stat': {'stat_id': '12', 'value': '885'}},
+          {'stat': {'stat_id': '15', 'value': '304'}},
+          {'stat': {'stat_id': '16', 'value': '197'}},
+          {'stat': {'stat_id': '17', 'value': '46'}},
+          {'stat': {'stat_id': '18', 'value': '21'}},
+          {'stat': {'stat_id': '19', 'value': '114'}}]},
+        'team_points': {'coverage_type': 'week', 'week': '14', 'total': '6'},
+        'team_remaining_games': {'coverage_type': 'week',
+         'week': '14',
+         'total': {'remaining_games': 0,
+          'live_games': 0,
+          'completed_games': 50}}}]},
+     '1': {'team': [[{'team_key': '395.l.12682.t.12'},
+        {'team_id': '12'},
+        {'name': 'River of Ayton Tears'},
+        [],
+        {'url': 'https://basketball.fantasysports.yahoo.com/nba/12682/12'},
+        {'team_logos': [{'team_logo': {'size': 'large',
+            'url': 'https://s.yimg.com/cv/apiv2/default/nba/nba_4_a.png'}}]},
+        {'division_id': '1'},
+        {'waiver_priority': 10},
+        [],
+        {'number_of_moves': '71'},
+        {'number_of_trades': '2'},
+        {'roster_adds': {'coverage_type': 'week',
+          'coverage_value': 15,
+          'value': '7'}},
+        [],
+        {'league_scoring_type': 'headone'},
+        [],
+        [],
+        {'has_draft_grade': 0},
+        [],
+        []],
+       {'team_stats': {'coverage_type': 'week',
+         'week': '14',
+         'stats': [{'stat': {'stat_id': '9004003', 'value': '197/439'}},
+          {'stat': {'stat_id': '5', 'value': '.449'}},
+          {'stat': {'stat_id': '9007006', 'value': '103/132'}},
+          {'stat': {'stat_id': '8', 'value': '.780'}},
+          {'stat': {'stat_id': '10', 'value': '56'}},
+          {'stat': {'stat_id': '12', 'value': '553'}},
+          {'stat': {'stat_id': '15', 'value': '271'}},
+          {'stat': {'stat_id': '16', 'value': '104'}},
+          {'stat': {'stat_id': '17', 'value': '29'}},
+          {'stat': {'stat_id': '18', 'value': '23'}},
+          {'stat': {'stat_id': '19', 'value': '71'}}]},
+        'team_points': {'coverage_type': 'week', 'week': '14', 'total': '3'},
+        'team_remaining_games': {'coverage_type': 'week',
+         'week': '14',
+         'total': {'remaining_games': 0,
+          'live_games': 0,
+          'completed_games': 42}}}]},
+     'count': 2}}}},
+ '2': {'matchup': {'week': '14',
+   'week_start': '2020-01-20',
+   'week_end': '2020-01-26',
+   'status': 'postevent',
+   'is_playoffs': '0',
+   'is_consolation': '0',
+   'is_tied': 0,
+   'winner_team_key': '395.l.12682.t.3',
+   'stat_winners': [{'stat_winner': {'stat_id': '5',
+      'winner_team_key': '395.l.12682.t.11'}},
+    {'stat_winner': {'stat_id': '8', 'winner_team_key': '395.l.12682.t.11'}},
+    {'stat_winner': {'stat_id': '10', 'winner_team_key': '395.l.12682.t.3'}},
+    {'stat_winner': {'stat_id': '12', 'winner_team_key': '395.l.12682.t.3'}},
+    {'stat_winner': {'stat_id': '15', 'winner_team_key': '395.l.12682.t.3'}},
+    {'stat_winner': {'stat_id': '16', 'winner_team_key': '395.l.12682.t.3'}},
+    {'stat_winner': {'stat_id': '17', 'winner_team_key': '395.l.12682.t.3'}},
+    {'stat_winner': {'stat_id': '18', 'winner_team_key': '395.l.12682.t.3'}},
+    {'stat_winner': {'stat_id': '19', 'winner_team_key': '395.l.12682.t.11'}}],
+   '0': {'teams': {'0': {'team': [[{'team_key': '395.l.12682.t.3'},
+        {'team_id': '3'},
+        {'name': 'im a dino'},
+        [],
+        {'url': 'https://basketball.fantasysports.yahoo.com/nba/12682/3'},
+        {'team_logos': [{'team_logo': {'size': 'large',
+            'url': 'https://yahoofantasysports-res.cloudinary.com/image/upload/t_s192sq/fantasy-logos/57363548974_ee88f6.jpg'}}]},
+        {'division_id': '2'},
+        {'waiver_priority': 9},
+        [],
+        {'number_of_moves': '22'},
+        {'number_of_trades': 0},
+        {'roster_adds': {'coverage_type': 'week',
+          'coverage_value': 15,
+          'value': '7'}},
+        [],
+        {'league_scoring_type': 'headone'},
+        [],
+        [],
+        {'has_draft_grade': 0},
+        [],
+        []],
+       {'team_stats': {'coverage_type': 'week',
+         'week': '14',
+         'stats': [{'stat': {'stat_id': '9004003', 'value': '265/576'}},
+          {'stat': {'stat_id': '5', 'value': '.460'}},
+          {'stat': {'stat_id': '9007006', 'value': '159/212'}},
+          {'stat': {'stat_id': '8', 'value': '.750'}},
+          {'stat': {'stat_id': '10', 'value': '69'}},
+          {'stat': {'stat_id': '12', 'value': '758'}},
+          {'stat': {'stat_id': '15', 'value': '287'}},
+          {'stat': {'stat_id': '16', 'value': '201'}},
+          {'stat': {'stat_id': '17', 'value': '50'}},
+          {'stat': {'stat_id': '18', 'value': '35'}},
+          {'stat': {'stat_id': '19', 'value': '98'}}]},
+        'team_points': {'coverage_type': 'week', 'week': '14', 'total': '6'},
+        'team_remaining_games': {'coverage_type': 'week',
+         'week': '14',
+         'total': {'remaining_games': 0,
+          'live_games': 0,
+          'completed_games': 45}}}]},
+     '1': {'team': [[{'team_key': '395.l.12682.t.11'},
+        {'team_id': '11'},
+        {'name': 'Mao ZeBron'},
+        [],
+        {'url': 'https://basketball.fantasysports.yahoo.com/nba/12682/11'},
+        {'team_logos': [{'team_logo': {'size': 'large',
+            'url': 'https://s.yimg.com/cv/apiv2/default/nba/nba_4_z.png'}}]},
+        {'division_id': '2'},
+        {'waiver_priority': 6},
+        [],
+        {'number_of_moves': '4'},
+        {'number_of_trades': 0},
+        {'roster_adds': {'coverage_type': 'week',
+          'coverage_value': 15,
+          'value': '0'}},
+        [],
+        {'league_scoring_type': 'headone'},
+        [],
+        [],
+        {'has_draft_grade': 0},
+        [],
+        []],
+       {'team_stats': {'coverage_type': 'week',
+         'week': '14',
+         'stats': [{'stat': {'stat_id': '9004003', 'value': '264/532'}},
+          {'stat': {'stat_id': '5', 'value': '.496'}},
+          {'stat': {'stat_id': '9007006', 'value': '138/161'}},
+          {'stat': {'stat_id': '8', 'value': '.857'}},
+          {'stat': {'stat_id': '10', 'value': '59'}},
+          {'stat': {'stat_id': '12', 'value': '725'}},
+          {'stat': {'stat_id': '15', 'value': '228'}},
+          {'stat': {'stat_id': '16', 'value': '139'}},
+          {'stat': {'stat_id': '17', 'value': '38'}},
+          {'stat': {'stat_id': '18', 'value': '22'}},
+          {'stat': {'stat_id': '19', 'value': '84'}}]},
+        'team_points': {'coverage_type': 'week', 'week': '14', 'total': '3'},
+        'team_remaining_games': {'coverage_type': 'week',
+         'week': '14',
+         'total': {'remaining_games': 0,
+          'live_games': 0,
+          'completed_games': 43}}}]},
+     'count': 2}}}},
+ '3': {'matchup': {'week': '14',
+   'week_start': '2020-01-20',
+   'week_end': '2020-01-26',
+   'status': 'postevent',
+   'is_playoffs': '0',
+   'is_consolation': '0',
+   'is_tied': 0,
+   'winner_team_key': '395.l.12682.t.4',
+   'stat_winners': [{'stat_winner': {'stat_id': '5',
+      'winner_team_key': '395.l.12682.t.4'}},
+    {'stat_winner': {'stat_id': '8', 'winner_team_key': '395.l.12682.t.4'}},
+    {'stat_winner': {'stat_id': '10', 'winner_team_key': '395.l.12682.t.4'}},
+    {'stat_winner': {'stat_id': '12', 'winner_team_key': '395.l.12682.t.4'}},
+    {'stat_winner': {'stat_id': '15', 'winner_team_key': '395.l.12682.t.5'}},
+    {'stat_winner': {'stat_id': '16', 'winner_team_key': '395.l.12682.t.5'}},
+    {'stat_winner': {'stat_id': '17', 'winner_team_key': '395.l.12682.t.4'}},
+    {'stat_winner': {'stat_id': '18', 'winner_team_key': '395.l.12682.t.4'}},
+    {'stat_winner': {'stat_id': '19', 'winner_team_key': '395.l.12682.t.4'}}],
+   '0': {'teams': {'0': {'team': [[{'team_key': '395.l.12682.t.4'},
+        {'team_id': '4'},
+        {'name': "Guillem's Grand Gang"},
+        [],
+        {'url': 'https://basketball.fantasysports.yahoo.com/nba/12682/4'},
+        {'team_logos': [{'team_logo': {'size': 'large',
+            'url': 'https://yahoofantasysports-res.cloudinary.com/image/upload/t_s192sq/fantasy-logos/24710747453_5769d07e8c.jpg'}}]},
+        {'division_id': '1'},
+        {'waiver_priority': 11},
+        [],
+        {'number_of_moves': '65'},
+        {'number_of_trades': '1'},
+        {'roster_adds': {'coverage_type': 'week',
+          'coverage_value': 15,
+          'value': '7'}},
+        [],
+        {'league_scoring_type': 'headone'},
+        [],
+        [],
+        {'has_draft_grade': 0},
+        [],
+        []],
+       {'team_stats': {'coverage_type': 'week',
+         'week': '14',
+         'stats': [{'stat': {'stat_id': '9004003', 'value': '297/650'}},
+          {'stat': {'stat_id': '5', 'value': '.457'}},
+          {'stat': {'stat_id': '9007006', 'value': '141/160'}},
+          {'stat': {'stat_id': '8', 'value': '.881'}},
+          {'stat': {'stat_id': '10', 'value': '80'}},
+          {'stat': {'stat_id': '12', 'value': '815'}},
+          {'stat': {'stat_id': '15', 'value': '248'}},
+          {'stat': {'stat_id': '16', 'value': '153'}},
+          {'stat': {'stat_id': '17', 'value': '53'}},
+          {'stat': {'stat_id': '18', 'value': '31'}},
+          {'stat': {'stat_id': '19', 'value': '99'}}]},
+        'team_points': {'coverage_type': 'week', 'week': '14', 'total': '7'},
+        'team_remaining_games': {'coverage_type': 'week',
+         'week': '14',
+         'total': {'remaining_games': 0,
+          'live_games': 0,
+          'completed_games': 48}}}]},
+     '1': {'team': [[{'team_key': '395.l.12682.t.5'},
+        {'team_id': '5'},
+        {'name': 'Kennard-ly Wait'},
+        [],
+        {'url': 'https://basketball.fantasysports.yahoo.com/nba/12682/5'},
+        {'team_logos': [{'team_logo': {'size': 'large',
+            'url': 'https://yahoofantasysports-res.cloudinary.com/image/upload/t_s192sq/fantasy-logos/3d50711b8229c509a0eb840444e1f22a6b541b492240ffd206cf8b02ad185094.jpg'}}]},
+        {'division_id': '2'},
+        {'waiver_priority': 12},
+        [],
+        {'number_of_moves': '40'},
+        {'number_of_trades': '4'},
+        {'roster_adds': {'coverage_type': 'week',
+          'coverage_value': 15,
+          'value': '5'}},
+        [],
+        {'league_scoring_type': 'headone'},
+        [],
+        [],
+        {'has_draft_grade': 0},
+        [],
+        []],
+       {'team_stats': {'coverage_type': 'week',
+         'week': '14',
+         'stats': [{'stat': {'stat_id': '9004003', 'value': '283/637'}},
+          {'stat': {'stat_id': '5', 'value': '.444'}},
+          {'stat': {'stat_id': '9007006', 'value': '137/189'}},
+          {'stat': {'stat_id': '8', 'value': '.725'}},
+          {'stat': {'stat_id': '10', 'value': '60'}},
+          {'stat': {'stat_id': '12', 'value': '763'}},
+          {'stat': {'stat_id': '15', 'value': '282'}},
+          {'stat': {'stat_id': '16', 'value': '194'}},
+          {'stat': {'stat_id': '17', 'value': '47'}},
+          {'stat': {'stat_id': '18', 'value': '26'}},
+          {'stat': {'stat_id': '19', 'value': '108'}}]},
+        'team_points': {'coverage_type': 'week', 'week': '14', 'total': '2'},
+        'team_remaining_games': {'coverage_type': 'week',
+         'week': '14',
+         'total': {'remaining_games': 0,
+          'live_games': 0,
+          'completed_games': 53}}}]},
+     'count': 2}}}},
+ '4': {'matchup': {'week': '14',
+   'week_start': '2020-01-20',
+   'week_end': '2020-01-26',
+   'status': 'postevent',
+   'is_playoffs': '0',
+   'is_consolation': '0',
+   'is_tied': 0,
+   'winner_team_key': '395.l.12682.t.6',
+   'stat_winners': [{'stat_winner': {'stat_id': '5',
+      'winner_team_key': '395.l.12682.t.6'}},
+    {'stat_winner': {'stat_id': '8', 'winner_team_key': '395.l.12682.t.6'}},
+    {'stat_winner': {'stat_id': '10', 'winner_team_key': '395.l.12682.t.6'}},
+    {'stat_winner': {'stat_id': '12', 'winner_team_key': '395.l.12682.t.6'}},
+    {'stat_winner': {'stat_id': '15', 'winner_team_key': '395.l.12682.t.6'}},
+    {'stat_winner': {'stat_id': '16', 'winner_team_key': '395.l.12682.t.6'}},
+    {'stat_winner': {'stat_id': '17', 'winner_team_key': '395.l.12682.t.6'}},
+    {'stat_winner': {'stat_id': '18', 'winner_team_key': '395.l.12682.t.6'}},
+    {'stat_winner': {'stat_id': '19', 'winner_team_key': '395.l.12682.t.10'}}],
+   '0': {'teams': {'0': {'team': [[{'team_key': '395.l.12682.t.6'},
+        {'team_id': '6'},
+        {'name': 'Sympathy for a Wall'},
+        [],
+        {'url': 'https://basketball.fantasysports.yahoo.com/nba/12682/6'},
+        {'team_logos': [{'team_logo': {'size': 'large',
+            'url': 'https://yahoofantasysports-res.cloudinary.com/image/upload/t_s192sq/fantasy-logos/24706550044_93f3821bc2.jpg'}}]},
+        {'division_id': '1'},
+        {'waiver_priority': 1},
+        [],
+        {'number_of_moves': '3'},
+        {'number_of_trades': 0},
+        {'roster_adds': {'coverage_type': 'week',
+          'coverage_value': 15,
+          'value': '0'}},
+        [],
+        {'league_scoring_type': 'headone'},
+        [],
+        [],
+        {'has_draft_grade': 0},
+        [],
+        []],
+       {'team_stats': {'coverage_type': 'week',
+         'week': '14',
+         'stats': [{'stat': {'stat_id': '9004003', 'value': '250/490'}},
+          {'stat': {'stat_id': '5', 'value': '.510'}},
+          {'stat': {'stat_id': '9007006', 'value': '168/194'}},
+          {'stat': {'stat_id': '8', 'value': '.866'}},
+          {'stat': {'stat_id': '10', 'value': '63'}},
+          {'stat': {'stat_id': '12', 'value': '731'}},
+          {'stat': {'stat_id': '15', 'value': '263'}},
+          {'stat': {'stat_id': '16', 'value': '139'}},
+          {'stat': {'stat_id': '17', 'value': '37'}},
+          {'stat': {'stat_id': '18', 'value': '22'}},
+          {'stat': {'stat_id': '19', 'value': '61'}}]},
+        'team_points': {'coverage_type': 'week', 'week': '14', 'total': '8'},
+        'team_remaining_games': {'coverage_type': 'week',
+         'week': '14',
+         'total': {'remaining_games': 0,
+          'live_games': 0,
+          'completed_games': 47}}}]},
+     '1': {'team': [[{'team_key': '395.l.12682.t.10'},
+        {'team_id': '10'},
+        {'name': "Let's Get Tropical"},
+        [],
+        {'url': 'https://basketball.fantasysports.yahoo.com/nba/12682/10'},
+        {'team_logos': [{'team_logo': {'size': 'large',
+            'url': 'https://yahoofantasysports-res.cloudinary.com/image/upload/t_s192sq/fantasy-logos/59601376892_a8872e.jpg'}}]},
+        {'division_id': '1'},
+        {'waiver_priority': 7},
+        [],
+        {'number_of_moves': '13'},
+        {'number_of_trades': '4'},
+        {'roster_adds': {'coverage_type': 'week',
+          'coverage_value': 15,
+          'value': '0'}},
+        [],
+        {'league_scoring_type': 'headone'},
+        [],
+        [],
+        {'has_draft_grade': 0},
+        [],
+        []],
+       {'team_stats': {'coverage_type': 'week',
+         'week': '14',
+         'stats': [{'stat': {'stat_id': '9004003', 'value': '175/416'}},
+          {'stat': {'stat_id': '5', 'value': '.421'}},
+          {'stat': {'stat_id': '9007006', 'value': '79/104'}},
+          {'stat': {'stat_id': '8', 'value': '.760'}},
+          {'stat': {'stat_id': '10', 'value': '55'}},
+          {'stat': {'stat_id': '12', 'value': '484'}},
+          {'stat': {'stat_id': '15', 'value': '228'}},
+          {'stat': {'stat_id': '16', 'value': '86'}},
+          {'stat': {'stat_id': '17', 'value': '36'}},
+          {'stat': {'stat_id': '18', 'value': '19'}},
+          {'stat': {'stat_id': '19', 'value': '47'}}]},
+        'team_points': {'coverage_type': 'week', 'week': '14', 'total': '1'},
+        'team_remaining_games': {'coverage_type': 'week',
+         'week': '14',
+         'total': {'remaining_games': 0,
+          'live_games': 0,
+          'completed_games': 46}}}]},
+     'count': 2}}}},
+ '5': {'matchup': {'week': '14',
+   'week_start': '2020-01-20',
+   'week_end': '2020-01-26',
+   'status': 'postevent',
+   'is_playoffs': '0',
+   'is_consolation': '0',
+   'is_tied': 0,
+   'winner_team_key': '395.l.12682.t.9',
+   'stat_winners': [{'stat_winner': {'stat_id': '5',
+      'winner_team_key': '395.l.12682.t.9'}},
+    {'stat_winner': {'stat_id': '8', 'winner_team_key': '395.l.12682.t.8'}},
+    {'stat_winner': {'stat_id': '10', 'winner_team_key': '395.l.12682.t.9'}},
+    {'stat_winner': {'stat_id': '12', 'winner_team_key': '395.l.12682.t.9'}},
+    {'stat_winner': {'stat_id': '15', 'winner_team_key': '395.l.12682.t.9'}},
+    {'stat_winner': {'stat_id': '16', 'winner_team_key': '395.l.12682.t.8'}},
+    {'stat_winner': {'stat_id': '17', 'winner_team_key': '395.l.12682.t.8'}},
+    {'stat_winner': {'stat_id': '18', 'winner_team_key': '395.l.12682.t.9'}},
+    {'stat_winner': {'stat_id': '19', 'is_tied': 1}}],
+   '0': {'teams': {'0': {'team': [[{'team_key': '395.l.12682.t.8'},
+        {'team_id': '8'},
+        {'name': 'The Jive Turkeys'},
+        [],
+        {'url': 'https://basketball.fantasysports.yahoo.com/nba/12682/8'},
+        {'team_logos': [{'team_logo': {'size': 'large',
+            'url': 'https://yahoofantasysports-res.cloudinary.com/image/upload/t_s192sq/fantasy-logos/57363467244_7003a0.jpg'}}]},
+        {'division_id': '2'},
+        {'waiver_priority': 4},
+        [],
+        {'number_of_moves': '46'},
+        {'number_of_trades': '3'},
+        {'roster_adds': {'coverage_type': 'week',
+          'coverage_value': 15,
+          'value': '4'}},
+        [],
+        {'league_scoring_type': 'headone'},
+        [],
+        [],
+        {'has_draft_grade': 0},
+        [],
+        []],
+       {'team_stats': {'coverage_type': 'week',
+         'week': '14',
+         'stats': [{'stat': {'stat_id': '9004003', 'value': '205/461'}},
+          {'stat': {'stat_id': '5', 'value': '.445'}},
+          {'stat': {'stat_id': '9007006', 'value': '72/94'}},
+          {'stat': {'stat_id': '8', 'value': '.766'}},
+          {'stat': {'stat_id': '10', 'value': '52'}},
+          {'stat': {'stat_id': '12', 'value': '534'}},
+          {'stat': {'stat_id': '15', 'value': '195'}},
+          {'stat': {'stat_id': '16', 'value': '148'}},
+          {'stat': {'stat_id': '17', 'value': '45'}},
+          {'stat': {'stat_id': '18', 'value': '24'}},
+          {'stat': {'stat_id': '19', 'value': '69'}}]},
+        'team_points': {'coverage_type': 'week', 'week': '14', 'total': '3'},
+        'team_remaining_games': {'coverage_type': 'week',
+         'week': '14',
+         'total': {'remaining_games': 0,
+          'live_games': 0,
+          'completed_games': 46}}}]},
+     '1': {'team': [[{'team_key': '395.l.12682.t.9'},
+        {'team_id': '9'},
+        {'name': 'Stretch6'},
+        [],
+        {'url': 'https://basketball.fantasysports.yahoo.com/nba/12682/9'},
+        {'team_logos': [{'team_logo': {'size': 'large',
+            'url': 'https://yahoofantasysports-res.cloudinary.com/image/upload/t_s192sq/fantasy-logos/31344601365_10a65b1b8b.jpg'}}]},
+        {'division_id': '1'},
+        {'waiver_priority': 2},
+        [],
+        {'number_of_moves': '32'},
+        {'number_of_trades': '2'},
+        {'roster_adds': {'coverage_type': 'week',
+          'coverage_value': 15,
+          'value': '5'}},
+        [],
+        {'league_scoring_type': 'headone'},
+        [],
+        [],
+        {'has_draft_grade': 0},
+        [],
+        []],
+       {'team_stats': {'coverage_type': 'week',
+         'week': '14',
+         'stats': [{'stat': {'stat_id': '9004003', 'value': '230/492'}},
+          {'stat': {'stat_id': '5', 'value': '.467'}},
+          {'stat': {'stat_id': '9007006', 'value': '91/124'}},
+          {'stat': {'stat_id': '8', 'value': '.734'}},
+          {'stat': {'stat_id': '10', 'value': '63'}},
+          {'stat': {'stat_id': '12', 'value': '614'}},
+          {'stat': {'stat_id': '15', 'value': '214'}},
+          {'stat': {'stat_id': '16', 'value': '132'}},
+          {'stat': {'stat_id': '17', 'value': '43'}},
+          {'stat': {'stat_id': '18', 'value': '42'}},
+          {'stat': {'stat_id': '19', 'value': '69'}}]},
+        'team_points': {'coverage_type': 'week', 'week': '14', 'total': '5'},
+        'team_remaining_games': {'coverage_type': 'week',
+         'week': '14',
+         'total': {'remaining_games': 0,
+          'live_games': 0,
+          'completed_games': 51}}}]},
+     'count': 2}}}},
+ 'count': 6}
+INFO = LEAGUE = {
+    'yid': '395.l.12682',
+    'year': 2019,
+    'leagueid': 0,
+    'team_map': {
+        '395.l.12682.t.2': 1,
+        '395.l.12682.t.12': 11,
+        '395.l.12682.t.6': 3,
+        '395.l.12682.t.1': 0,
+        '395.l.12682.t.3': 6,
+        '395.l.12682.t.4': 7,
+        '395.l.12682.t.9': 5,
+        '395.l.12682.t.8': 9,
+        '395.l.12682.t.7': 8,
+        '395.l.12682.t.5': 2,
+        '395.l.12682.t.11': 10,
+        '395.l.12682.t.10': 4
+    }
+}
+STAT_MAP = {
+    '9004003': 'fg',
+    '9007006': 'ft',
+    '10': 'threes',
+    '12': 'points',
+    '15': 'rebounds',
+    '16': 'assists',
+    '17': 'steals',
+    '18': 'blocks',
+    '19': 'turnovers'
+}
 
-
-def _purge_stars(column):
-    return column.str.replace('*', '', regex=False)
+_logger = logging.getLogger(__file__)
 
 
 class WeeklyFormatter:
-    frame = None
-    roto = None
 
-    def __init__(self, week):
-        _logger.setLevel(logging.getLevelName('INFO'))
-        _logger.info('Formatter started')
-        self.week = week
-        self.score_dict = dict()
-        self.player_info = self._read()
+    weeks = dict()
+    stat_map = STAT_MAP
+
+    def __init__(self, info):
+        self.league_info = info
+
+    def _stat_updater(self, info, stat):
+        name = self.stat_map.get(stat['stat_id'])
+        if name:
+            if name[0] == 'f':
+                v = stat['value'].split('/')
+                buckets = {
+                    'm': int(v[0]),
+                    'a': int(v[1]),
+                    'pct': int(v[0])/int(v[1])
+                }
+                for k, v in buckets.items():
+                    info.update({name + k: v})
+            else:
+                info.update({name: stat['value']})
+
+    def _team_converter(self, team, week):
+        team_map = self.league_info['team_map']
+        if isinstance(team, int):
+            return None
+        team_dict = dict()
+        data = team['team']
+        for i, t in enumerate(data[0]):
+            if isinstance(t, dict):
+                team_dict.update(t)
+        team_info = {
+            'teamid': team_map[team_dict['team_key']],
+            'week': int(week),
+            'leagueid': self.league_info['leagueid'],
+            'score': int(data[1]['team_points']['total'])
+        }
+        stat_dump = data[1]['team_stats']['stats']
+        for stats in stat_dump:
+            # I fucking hate JSON naming
+            stat = stats['stat']
+            self._stat_updater(team_info, stat)
+        return team_info, team_dict['team_key']
 
     @staticmethod
-    def _read():
-        with open(PLAYER_INFO, "rb") as data:
-            players = json.load(data)
-        return {value['current']: value['person'] for key, value in players.items()}
+    def _add_roto(scoreboard):
+        stats = []
+        for col in ROTO_COLS:
+            array = scoreboard[col].values
+            temp = array.argsort()
+            ranks = np.empty_like(temp)
+            ranks[temp] = np.arange(len(array))
+            stats.append(ranks)
+        rotos = np.array(stats).sum(axis=0)
+        scoreboard['roto'] = rotos
+        temp = rotos.argsort()
+        ranks = np.empty_like(temp)
+        ranks[temp] = np.arange(len(rotos) - 1, -1, -1)
+        scoreboard['roto_rank'] = ranks
+        return scoreboard
 
-    def _fix_scores(self, frame):
-        _logger.info('Fixing scores')
-        frame['true_score'] = 0.0
+    def create_df(self, week):
+        scoreboard = self.weeks[week]
+        weekly_frame = pd.DataFrame.from_dict(scoreboard, orient='index').set_index('teamid')
+        weekly_frame['true_score'] = 0.0
         scored = set()
-        for team in frame.index:
+        for team in weekly_frame.index:
             if team not in scored:
-                home = frame.loc[team]
+                home = weekly_frame.loc[team]
                 away = home.opponent
                 _logger.info('Fixing scores for {home} and {away} for week {week}'.format(home=team, away=away,
                                                                                           week=self.week))
                 home_score = home.score * 1.0
                 try:
-                    away_score = frame.loc[away].score * 1.0
+                    away_score = weekly_frame.loc[away].score * 1.0
                 except KeyError:
                     away_score = 0
                 except Exception as e:
                     raise e
-                diff = (9 - home_score - away_score)/2
+                diff = (9 - home_score - away_score) / 2
                 home_score += diff
                 away_score += diff
                 home_score /= 9
                 away_score /= 9
                 _logger.info('boop')
-                frame['true_score'][team] = home_score
+                weekly_frame['true_score'][team] = home_score
                 _logger.info('boop')
-                frame['true_score'][away] = away_score
+                weekly_frame['true_score'][away] = away_score
                 _logger.info('boop')
                 scored.add(team)
                 scored.add(away)
-                _logger.info('Fixed scores for {home} and {away} for week {week}'.format(home=team, away=away, week=self.week))
-        return frame[KEEP_COLS]
+                _logger.info(
+                    'Fixed scores for {home} and {away} for week {week}'.format(home=team, away=away, week=self.week))
 
-    def _format(self, player_dict):
-        frame = pd.DataFrame.from_dict(player_dict, orient='index', columns=INIT_COLS)
-        frame.index = [self.player_info[ind] for ind in frame.index]
-        frame.opponent.replace(self.player_info, inplace=True)
-        _logger.info('Loaded frame')
-        for col in ['-/-', '0']:
-            try:
-                frame.drop(index=col, inplace=True)
-            except KeyError:
+        return self._add_roto(weekly_frame)[KEEP_COLS]
+
+    def ingest(self, scoreboard, week):
+        weekly_dict = dict()
+        for v in scoreboard.values():
+            if isinstance(v, int):
+                break
+            matchup = v['matchup']
+            if matchup['status'] == 'midevent':
                 pass
-            except Exception as e:
-                raise e
-        fg = frame.fgmfga.str.split('/')
-        ft = frame.ftmfta.str.split('/')
-        _logger.info('Splitting field goals and free throws')
-        frame[['fgm', 'fga']] = pd.DataFrame(fg.tolist(), index=frame.index)
-        frame[['ftm', 'fta']] = pd.DataFrame(ft.tolist(), index=frame.index)
-        frame['week'] = self.week
-        for col in INT_COLS:
-            frame[col] = frame[col].astype(int)
-            _logger.info(col)
-        for col in FLT_COLS:
-            try:
-                frame[col] = frame[col].astype(float)
-            except ValueError:
-                column = _purge_stars(frame[col])
-                frame[col] = column.astype(float)
-            except Exception as e:
-                raise e
+            elif matchup['status'] == 'preevent':
+                pass
+            elif matchup['status'] == 'postevent':
+                teams = matchup['0']['teams']
+                converted0, team0 = self._team_converter(teams['0'], week)
+                converted1, team1 = self._team_converter(teams['1'], week)
+                converted0.update({'opponent': converted1['teamid']})
+                converted1.update({'opponent': converted0['teamid']})
+                weekly_dict.update({team0: converted0, team1: converted1})
+            else:
+                raise ValueError
 
-        self.frame = self._fix_scores(frame)
-        _logger.info('Scores fixed')
-
-    def _roto(self):
-        roto_scores = self.frame[ROTO_COLS].values.argsort(axis=0).argsort(axis=0) + 1
-        rotos = roto_scores.sum(axis=1)
-        self.frame['roto'] = rotos
-        self.frame['roto_rank'] = rotos.argsort(axis=0).argsort(axis=0) + 1
-
-    def _write(self):
-        self.frame.to_csv('./data/week_{}.csv'.format(self.week))
-
-    def run(self, player_dict, roto=True):
-        if self.week:
-            _logger.info('Loading testing dictionary.')
-            self._format(player_dict)
-            if roto:
-                self._roto()
-            self._write()
+        self.weeks.update({str(week): weekly_dict})
 
 
 if __name__ == '__main__':
-    with open('./data/player_stats.pkl', 'rb') as file:
-        stats_dict = pickle.load(file)
-
-    frm = WeeklyFormatter(WEEK)
-    frm.run(stats_dict)
+    frm = WeeklyFormatter(INFO)
+    frm.ingest(BOARD, WEEK)
+    print('done')

@@ -8,3 +8,4 @@ geckodriver*
 *.csv
 *.log
 yahooelosystem/tools/__pycache__/
+secrets.json
