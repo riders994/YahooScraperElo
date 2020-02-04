@@ -714,7 +714,7 @@ class WeeklyFormatter:
         return scoreboard
 
     def create_df(self, week):
-        scoreboard = self.weeks[week]
+        scoreboard = self.weeks[str(week)]
         weekly_frame = pd.DataFrame.from_dict(scoreboard, orient='index').set_index('teamid')
         weekly_frame['true_score'] = 0.0
         scored = set()
@@ -723,7 +723,7 @@ class WeeklyFormatter:
                 home = weekly_frame.loc[team]
                 away = home.opponent
                 _logger.info('Fixing scores for {home} and {away} for week {week}'.format(home=team, away=away,
-                                                                                          week=self.week))
+                                                                                          week=week))
                 home_score = home.score * 1.0
                 try:
                     away_score = weekly_frame.loc[away].score * 1.0
@@ -744,7 +744,7 @@ class WeeklyFormatter:
                 scored.add(team)
                 scored.add(away)
                 _logger.info(
-                    'Fixed scores for {home} and {away} for week {week}'.format(home=team, away=away, week=self.week))
+                    'Fixed scores for {home} and {away} for week {week}'.format(home=team, away=away, week=week))
 
         return self._add_roto(weekly_frame)[KEEP_COLS]
 

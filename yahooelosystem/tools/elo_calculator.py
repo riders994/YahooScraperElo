@@ -93,19 +93,19 @@ class EloCalc:
                 #     playoff = True
                 if not playoff:
                     _logger.info('Calculating for %s vs. %s', player_1, player_2)
-                    player_1_data = [self.weekly_frame.iloc[p1_id, week - 1] * 1.0, vals[player_1_name]]
-                    player_2_data = [self.weekly_frame.iloc[p2_id, week - 1] * 1.0, vals[player_2_name]]
-                    scores = elo_calc(player_1_data, player_2_data, k=40)
+                    player_1_data = [self.weekly_frame.iloc[player_1, week - 1] * 1.0, vals[player_1]]
+                    player_2_data = [self.weekly_frame.iloc[player_2, week - 1] * 1.0, vals[player_2]]
+                    scores = elo_calc(player_1_data, player_2_data, k=60)
                     _logger.info('Adding scores to new week')
-                    new_week[p1_id] = scores[0]
-                    new_week[p2_id] = scores[1]
+                    new_week[player_1] = scores[0]
+                    new_week[player_2] = scores[1]
                 playoff = False
         _logger.info('Writing to frame')
         self.weekly_frame['week_{}'.format(week)] = new_week
 
-    def run(self, week_data, frame=None, week=0):
+    def run(self, week_data, frame=False, week=0):
         if week:
-            if frame:
+            if isinstance(frame, bool):
                 self.weekly_frame = frame
             else:
                 self._generate()

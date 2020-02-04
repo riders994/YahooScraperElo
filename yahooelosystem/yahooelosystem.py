@@ -31,7 +31,7 @@ LEAGUE = {
 WEEK = '1'
 
 MODES = {'csv', 'sql'}
-TABLES = ['weekly_elos']
+TABLES = ['weekly_elo']
 
 
 def week_formatter(week):
@@ -67,7 +67,7 @@ class YahooEloSystem:
             self.scraper = scraper
         else:
             self._gen_scraper()
-        self.scraper.login()
+            self.scraper.login()
 
     def _set_mode(self, new_mode):
         if new_mode not in MODES:
@@ -82,7 +82,7 @@ class YahooEloSystem:
         for table in TABLES:
             if table == 'weekly_stats':
                 pass
-            frame = pd.read_csv(os.path.join(self.path, 'resources', table + '.' + self.mode))
+            frame = pd.read_csv(os.path.join(self.path, 'resources', table + self.mode))
             self.data_model.update({table: frame})
         self.loaded = True
 
@@ -98,10 +98,15 @@ class YahooEloSystem:
         if self.mode == '.csv':
             self._load_pd()
 
+    def dump(self):
+        if self.mode == '.csv':
+            for name, table in self.data_model.items():
+                table.to_csv(os.path.join(self.path, 'resources', name + self.mode))
+
     def _check_week(self, week=None):
         if week:
-            return 'week_' + week in self.data_model['weekly_elos'].columns
-        return 'week_' + self.week in self.data_model['weekly_elos'].columns
+            return 'week_' + week in self.data_model['weekly_elo'].columns
+        return 'week_' + str(self.week) in self.data_model['weekly_elo'].columns
 
     def _set_formatter(self):
         self.formatter = WeeklyFormatter(self.league_info)
@@ -109,7 +114,7 @@ class YahooEloSystem:
     def _set_calc(self):
         self.calculator = EloCalc(self.league_info)
 
-    def run_multiple(self):
+    def run_multiple(self, override=False):
         self.multi = False
         if len(self.week) - 1:
             week_stored = self.week
@@ -117,31 +122,36 @@ class YahooEloSystem:
             week_stored = range(self.week + 1)
         for i in week_stored:
             self.week = i
-            self.run()
+            self.run(override)
 
-    def run(self):
+    def run(self, override=False):
         if not self.formatter:
             self._set_formatter()
         if not self.calculator:
             self._set_calc()
         if self.multi:
-            self.run_multiple()
+            self.run_multiple(override)
         else:
             if self.loaded:
-                if self._check_week():
-                    return self.data_model['weekly_elos']['week_' + self.week]
+                if not override:
+                    if self._check_week():
+                        return self.data_model['weekly_elo']['week_' + str(self.week)]
+
+                if self._check_week(self.week - 1):
+                    matchups = self.scraper.get_scoreboards(self.league_info['yid'], self.week)
+                    self.formatter.ingest(matchups, self.week)
+                    self.calculator.run(self.formatter.create_df(self.week), self.data_model['weekly_elo'], self.week)
+                    self.data_model.update({'weekly_elo': self.calculator.weekly_frame})
+                    return self.calculator.weekly_frame
                 else:
-                    if self._check_week(self.week - 1):
-                        matchups = self.scraper.get_scoreboards(self.league_info['yid'], self.week)
-                        self.formatter.ingest(matchups, self.week)
-                        self.calculator.run(self.formatter.create_df(self.week), self.data_model['weekly_elos'])
-                    else:
-                        return 'Sorry, missing data'
+                    return 'Sorry, missing data'
             else:
                 self._load()
-                self.run()
+                self.run(override)
 
 
 if __name__ == "__main__":
     sys = YahooEloSystem(LEAGUE, WEEK)
-    sys.run()
+    sys.run(True)
+    sys.dump()
+    print('done')
