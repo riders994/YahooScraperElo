@@ -12,6 +12,7 @@ LEAGUE = {
     'yid': '395.l.12682',
     'year': 2019,
     'leagueid': 0,
+    'channelid': 12682,
     'team_map': {
         '395.l.12682.t.2': 1,
         '395.l.12682.t.12': 11,
@@ -28,7 +29,7 @@ LEAGUE = {
     }
 }
 
-WEEK = '1'
+WEEK = '1:5'
 
 MODES = {'csv', 'sql'}
 TABLES = ['weekly_elo']
@@ -54,8 +55,8 @@ class YahooEloSystem:
     data_model = dict()
     _logger = logging.getLogger(__file__)
 
-    def __init__(self, league_info, week, scraper=None, creds=None, mode='csv', path=None):
-        self.mode = '.' + mode
+    def __init__(self, league_info, week, scraper=None, creds=None, mode='.csv', path=None):
+        self.mode = mode
         self.creds = creds
         self.league_info = league_info
         self.week, self.multi = week_formatter(week)
@@ -71,7 +72,7 @@ class YahooEloSystem:
 
     def _set_mode(self, new_mode):
         if new_mode not in MODES:
-            raise ValueError(f'Invalid mode: {new_mode}')
+            raise ValueError('Invalid mode: {}'.format(new_mode))
         else:
             self.mode = '.' + new_mode
 
@@ -82,7 +83,7 @@ class YahooEloSystem:
         for table in TABLES:
             if table == 'weekly_stats':
                 pass
-            frame = pd.read_csv(os.path.join(self.path, 'resources', table + self.mode))
+            frame = pd.read_csv(os.path.join(self.path, 'resources', table + self.mode), index_col=0)
             self.data_model.update({table: frame})
         self.loaded = True
 
@@ -90,12 +91,14 @@ class YahooEloSystem:
         for table in TABLES:
             if table == 'weekly_stats':
                 pass
-            frame = pd.read_csv(os.path.join(self.path, 'resources', table + self.mode))
+            frame = pd.read_csv(os.path.join(self.path, 'resources', table + self.mode), index_col=0)
             self.data_model.update({table: frame})
         self.loaded = True
 
-    def _load(self):
-        if self.mode == '.csv':
+    def load(self, payload=None):
+        if isinstance(payload, dict):
+            self.data_model.update(payload)
+        elif self.mode == '.csv':
             self._load_pd()
 
     def dump(self):
@@ -105,7 +108,7 @@ class YahooEloSystem:
 
     def _check_week(self, week=None):
         if week:
-            return 'week_' + week in self.data_model['weekly_elo'].columns
+            return 'week_' + str(week) in self.data_model['weekly_elo'].columns
         return 'week_' + str(self.week) in self.data_model['weekly_elo'].columns
 
     def _set_formatter(self):
@@ -135,18 +138,16 @@ class YahooEloSystem:
             if self.loaded:
                 if not override:
                     if self._check_week():
-                        return self.data_model['weekly_elo']['week_' + str(self.week)]
+                        self.loaded = True
 
                 if self._check_week(self.week - 1):
                     matchups = self.scraper.get_scoreboards(self.league_info['yid'], self.week)
                     self.formatter.ingest(matchups, self.week)
                     self.calculator.run(self.formatter.create_df(self.week), self.data_model['weekly_elo'], self.week)
                     self.data_model.update({'weekly_elo': self.calculator.weekly_frame})
-                    return self.calculator.weekly_frame
-                else:
-                    return 'Sorry, missing data'
+                    self.loaded = True
             else:
-                self._load()
+                self.load()
                 self.run(override)
 
 
