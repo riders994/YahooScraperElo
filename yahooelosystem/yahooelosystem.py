@@ -2,9 +2,9 @@ import os
 import logging
 import argparse
 import pandas as pd
-from tools import WeeklyFormatter
+from .tools import WeeklyFormatter
 from yahooscrapingtools import YahooScrapingTools
-from tools import EloCalc
+from .tools import EloCalc
 
 parser = argparse.ArgumentParser()
 
@@ -29,7 +29,7 @@ LEAGUE = {
     }
 }
 
-WEEK = '6'
+WEEK = '1'
 
 MODES = {'csv', 'sql'}
 TABLES = ['weekly_elos']
@@ -47,7 +47,6 @@ def week_formatter(week):
 
 
 class YahooEloSystem:
-
     loaded = False
     scraper = None
     formatter = None
@@ -139,11 +138,10 @@ class YahooEloSystem:
             self.run_multiple(override)
         else:
             if self.loaded:
-                if not override:
-                    if self._check_week():
-                        self.loaded = True
-
                 if self._check_week(self.week - 1):
+                    if not override:
+                        if self._check_week():
+                            return
                     matchups = self.scraper.get_scoreboards(self.league_info['yid'], self.week)
                     self.formatter.ingest(matchups, self.week)
                     self.calculator.run(self.formatter.create_df(self.week), self.data_model['weekly_elos'], self.week)
