@@ -32,7 +32,7 @@ LEAGUE = {
 WEEK = '1:5'
 
 MODES = {'csv', 'sql'}
-TABLES = ['weekly_elo']
+TABLES = ['weekly_elos']
 
 
 def week_formatter(week):
@@ -108,14 +108,17 @@ class YahooEloSystem:
 
     def _check_week(self, week=None):
         if week:
-            return 'week_' + str(week) in self.data_model['weekly_elo'].columns
-        return 'week_' + str(self.week) in self.data_model['weekly_elo'].columns
+            return 'week_' + str(week) in self.data_model['weekly_elos'].columns
+        return 'week_' + str(self.week) in self.data_model['weekly_elos'].columns
 
     def _set_formatter(self):
         self.formatter = WeeklyFormatter(self.league_info)
 
     def _set_calc(self):
         self.calculator = EloCalc(self.league_info)
+
+    def set_week(self, new_week):
+        self.week = new_week
 
     def run_multiple(self, override=False):
         self.multi = False
@@ -143,8 +146,8 @@ class YahooEloSystem:
                 if self._check_week(self.week - 1):
                     matchups = self.scraper.get_scoreboards(self.league_info['yid'], self.week)
                     self.formatter.ingest(matchups, self.week)
-                    self.calculator.run(self.formatter.create_df(self.week), self.data_model['weekly_elo'], self.week)
-                    self.data_model.update({'weekly_elo': self.calculator.weekly_frame})
+                    self.calculator.run(self.formatter.create_df(self.week), self.data_model['weekly_elos'], self.week)
+                    self.data_model.update({'weekly_elos': self.calculator.weekly_frame})
                     self.loaded = True
             else:
                 self.load()
