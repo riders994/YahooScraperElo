@@ -2,9 +2,9 @@ import os
 import logging
 import argparse
 import pandas as pd
-from .tools import WeeklyFormatter
+from tools import WeeklyFormatter
 from yahooscrapingtools import YahooScrapingTools
-from .tools import EloCalc
+from tools import EloCalc
 
 parser = argparse.ArgumentParser()
 
@@ -29,7 +29,7 @@ LEAGUE = {
     }
 }
 
-WEEK = '1:5'
+WEEK = '6'
 
 MODES = {'csv', 'sql'}
 TABLES = ['weekly_elos']
