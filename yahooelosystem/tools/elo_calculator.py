@@ -76,7 +76,6 @@ class EloCalc:
         _logger.info('Starting win/loss only calculation')
         _logger.info('Creating blank new week')
         new_week = [0] * frame.shape[0]
-        players = frame.index
         calced = set()
         vals = frame['true_score']
         playoff = False
@@ -101,7 +100,7 @@ class EloCalc:
                     new_week[player_2] = scores[1]
                 playoff = False
         _logger.info('Writing to frame')
-        self.weekly_frame['week_{}'.format(week)] = new_week
+        self.weekly_frame['week_{}'.format(week)] = [new_week[i] for i in self.weekly_frame.index]
 
     def run(self, week_data, frame=False, week=0):
         if week:
