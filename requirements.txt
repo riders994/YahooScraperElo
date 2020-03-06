@@ -14,4 +14,4 @@ yahoo-oauth==0.1.9
 certifi==2019.11.28
 python-dateutil==2.8.1
 yahoo-fantasy-api==1.8.1
-git+https://github.com/riders994/YahooScrapingTools.git@14342a2577b925949244d9dec340b5746860b380
+-e git+https://github.com/riders994/YahooScrapingTools.git@v1#egg=yahooscrapingtools

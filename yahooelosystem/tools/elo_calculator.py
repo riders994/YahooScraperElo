@@ -93,8 +93,8 @@ class EloCalc:
                 #     playoff = True
                 if not playoff:
                     _logger.info('Calculating for %s vs. %s', player_1, player_2)
-                    player_1_data = [self.weekly_frame.iloc[player_1, week - 1] * 1.0, vals[player_1]]
-                    player_2_data = [self.weekly_frame.iloc[player_2, week - 1] * 1.0, vals[player_2]]
+                    player_1_data = [self.weekly_frame.loc[player_1, 'week_{}'.format(week - 1)] * 1.0, vals[player_1]]
+                    player_2_data = [self.weekly_frame.loc[player_2, 'week_{}'.format(week - 1)] * 1.0, vals[player_2]]
                     scores = elo_calc(player_1_data, player_2_data, k=60)
                     _logger.info('Adding scores to new week')
                     new_week[player_1] = scores[0]
@@ -106,9 +106,9 @@ class EloCalc:
     def run(self, week_data, frame=False, week=0):
         if week:
             if isinstance(frame, bool):
-                self.weekly_frame = frame
-            else:
                 self._generate()
+            else:
+                self.weekly_frame = frame
             self._calc(week_data, week)
         else:
             self._generate()
