@@ -8,7 +8,7 @@ setup(
         'objectpath', 'pytz', 'yahoo_oauth', 'docopt', 'yahoo_fantasy_api', 'YahooScrapingTools'
     ],
     dependency_links=[
-      'git+https://github.com/riders994/YahooScrapingTools.git@v1#egg=yahooscrapingtools'
+      'git+https://github.com/riders994/YahooScrapingTools.git#egg=YahooScrapingTools-v1'
     ],
     python_requires='>=3',
 )
