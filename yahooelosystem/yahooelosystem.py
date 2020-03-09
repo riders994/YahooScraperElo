@@ -130,6 +130,8 @@ class YahooEloSystem:
             self.run(override)
 
     def run(self, override=False):
+        if isinstance(self.week, int) and self.week > 17:
+            self.week -= 1
         if not self.formatter:
             self._set_formatter()
         if not self.calculator:

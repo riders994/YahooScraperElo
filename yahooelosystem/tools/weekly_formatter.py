@@ -736,11 +736,8 @@ class WeeklyFormatter:
                 away_score += diff
                 home_score /= 9
                 away_score /= 9
-                _logger.info('boop')
                 weekly_frame['true_score'][team] = home_score
-                _logger.info('boop')
                 weekly_frame['true_score'][away] = away_score
-                _logger.info('boop')
                 scored.add(team)
                 scored.add(away)
                 _logger.info(
@@ -754,11 +751,9 @@ class WeeklyFormatter:
             if isinstance(v, int):
                 break
             matchup = v['matchup']
-            if matchup['status'] == 'midevent':
+            if matchup['status'] == 'preevent':
                 pass
-            elif matchup['status'] == 'preevent':
-                pass
-            elif matchup['status'] == 'postevent':
+            elif matchup['status'] in {'midevent', 'postevent'}:
                 teams = matchup['0']['teams']
                 converted0, team0 = self._team_converter(teams['0'], week)
                 converted1, team1 = self._team_converter(teams['1'], week)
