@@ -2,34 +2,32 @@ import os
 import logging
 import argparse
 import pandas as pd
-from .tools import WeeklyFormatter
+from tools import WeeklyFormatter
 from yahooscrapingtools import YahooScrapingTools
-from .tools import EloCalc
+from tools import EloCalc
 
 parser = argparse.ArgumentParser()
 
 LEAGUE = {
-    'yid': '395.l.12682',
-    'year': 2019,
+    'yid': '402.l.8048',
+    'year': 2020,
     'leagueid': 0,
     'channelid': 12682,
     'team_map': {
-        '395.l.12682.t.2': 1,
-        '395.l.12682.t.12': 11,
-        '395.l.12682.t.6': 3,
-        '395.l.12682.t.1': 0,
-        '395.l.12682.t.3': 6,
-        '395.l.12682.t.4': 7,
-        '395.l.12682.t.9': 5,
-        '395.l.12682.t.8': 9,
-        '395.l.12682.t.7': 8,
-        '395.l.12682.t.5': 2,
-        '395.l.12682.t.11': 10,
-        '395.l.12682.t.10': 4
+        '402.l.8048.t.2': 1,
+        '402.l.8048.t.6': 5,
+        '402.l.8048.t.1': 0,
+        '402.l.8048.t.3': 2,
+        '402.l.8048.t.4': 3,
+        '402.l.8048.t.9': 8,
+        '402.l.8048.t.8': 7,
+        '402.l.8048.t.7': 6,
+        '402.l.8048.t.5': 4,
+        '402.l.8048.t.10': 9
     }
 }
 
-WEEK = '1'
+WEEK = '18'
 
 MODES = {'csv', 'sql'}
 TABLES = ['weekly_elos']
@@ -106,7 +104,7 @@ class YahooEloSystem:
                 table.to_csv(os.path.join(self.path, 'resources', name + self.mode))
 
     def _check_week(self, week=None):
-        if week:
+        if week is not None:
             return 'week_' + str(week) in self.data_model['weekly_elos'].columns
         return 'week_' + str(self.week) in self.data_model['weekly_elos'].columns
 
@@ -130,8 +128,8 @@ class YahooEloSystem:
             self.run(override)
 
     def run(self, override=False):
-        if isinstance(self.week, int) and self.week > 17:
-            self.week -= 1
+        # if isinstance(self.week, int) and self.week > 17:
+        #     self.week -= 1
         if not self.formatter:
             self._set_formatter()
         if not self.calculator:
@@ -146,7 +144,8 @@ class YahooEloSystem:
                             return
                     matchups = self.scraper.get_scoreboards(self.league_info['yid'], self.week)
                     self.formatter.ingest(matchups, self.week)
-                    self.calculator.run(self.formatter.create_df(self.week), self.data_model['weekly_elos'], self.week)
+                    df = self.formatter.create_df(self.week)
+                    self.calculator.run(df, self.data_model['weekly_elos'], self.week)
                     self.data_model.update({'weekly_elos': self.calculator.weekly_frame})
                     self.loaded = True
             else:

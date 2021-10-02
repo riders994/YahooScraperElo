@@ -9,3 +9,4 @@ geckodriver*
 *.log
 yahooelosystem/tools/__pycache__/
 secrets.json
+data/players.json

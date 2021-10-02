@@ -4,7 +4,7 @@ import pandas as pd
 
 
 KEEP_COLS = ['fgm', 'fga', 'fgpct', 'ftm', 'fta', 'ftpct', 'threes', 'points', 'rebounds', 'assists', 'steals', 'blocks'
-             , 'turnovers', 'true_score', 'opponent', 'week']
+             , 'turnovers', 'true_score', 'opponent', 'week', 'roto', 'roto_rank']
 
 ROTO_COLS = ['fgpct', 'ftpct', 'threes', 'points', 'rebounds', 'assists', 'steals', 'blocks', 'turnovers']
 FLT_COLS = ['fgpct', 'ftpct', 'score']
@@ -617,7 +617,7 @@ BOARD = {'0': {'matchup': {'week': '14',
           'completed_games': 51}}}]},
      'count': 2}}}},
  'count': 6}
-INFO = LEAGUE = {
+INFO = {
     'yid': '395.l.12682',
     'year': 2019,
     'leagueid': 0,
@@ -704,13 +704,16 @@ class WeeklyFormatter:
             temp = array.argsort()
             ranks = np.empty_like(temp)
             ranks[temp] = np.arange(len(array))
+            if col == 'turnovers':
+                ranks = max(ranks) - ranks
+            ranks += 1
             stats.append(ranks)
         rotos = np.array(stats).sum(axis=0)
         scoreboard['roto'] = rotos
         temp = rotos.argsort()
         ranks = np.empty_like(temp)
         ranks[temp] = np.arange(len(rotos) - 1, -1, -1)
-        scoreboard['roto_rank'] = ranks
+        scoreboard['roto_rank'] = ranks + 1
         return scoreboard
 
     def create_df(self, week):
