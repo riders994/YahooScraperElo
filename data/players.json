@@ -3,16 +3,16 @@
     "names": ["0/0", "-/-"], "person": "none", "current": "-/-"
   },
   "1": {
-    "names": ["Russelled Jimmies"], "person": "Rohan", "current": "Russelled Jimmies"
+    "names": ["Wheel of Dortune"], "person": "Rohan", "current": "Wheel of Dortune"
   },
   "6": {
-    "names": ["Spicy T, Pascal\u2019s Triangle"], "person": "Ravi", "current": "Spicy T"
+    "names": ["Spicy T"], "person": "Ravi", "current": "Spicy T"
   },
   "3": {
     "names": ["Kennard-ly Wait"], "person": "Sahil", "current": "Kennard-ly Wait"
   },
   "4": {
-    "names": ["Wieliczka"], "person": "Alison", "current": "Wieliczka"
+    "names": ["I'll Have Another"], "person": "Alison", "current": "I'll Have Another"
   },
   "5": {
     "names": ["Lebran Grains"], "person": "AlexK", "current": "Lebran Grains"
@@ -20,15 +20,21 @@
   "2": {"names": ["CJ M'Gollum"], "person": "Neil", "current": "CJ M'Gollum"
   },
   "7": {
-    "names": ["Sympathy for a Wall"], "person": "Chris", "current": "Sympathy for a Wall"
+    "names": ["The Young Bane Rises"], "person": "Chris", "current": "The Young Bane Rises"
   },
   "8": {
     "names": ["The Jive Turkeys"], "person": "John", "current": "The Jive Turkeys"
   },
   "9": {
-    "names": ["James's Optimal Team"], "person": "James", "current": "James's Optimal Team"
+    "names": ["James's Optimal Team"], "person": "JamesC", "current": "Every \"Derozan\" Has Its Thorn"
   },
   "10": {
-    "names": ["SexLand", "Biscuits and Groovy"], "person": "AlexW", "current": "SexLand"
+    "names": ["SexLand"], "person": "AlexW", "current": "SexLand"
+  },
+  "11": {
+    "names": ["The Bealtles", "Biscuits and Groovy"], "person": "Aaron", "current": "The Bealtles"
+  },
+  "12": {
+    "names": ["James's Unreal Team"], "person": "JamesW", "current": "James's Unreal Team"
   }
 }

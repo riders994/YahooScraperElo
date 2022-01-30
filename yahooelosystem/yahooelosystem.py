@@ -9,25 +9,28 @@ from tools import EloCalc
 parser = argparse.ArgumentParser()
 
 LEAGUE = {
-    'yid': '402.l.8048',
-    'year': 2020,
+    'yid': '410.l.11456',
+    'year': 2021,
     'leagueid': 0,
     'channelid': 12682,
     'team_map': {
-        '402.l.8048.t.2': 1,
-        '402.l.8048.t.6': 5,
-        '402.l.8048.t.1': 0,
-        '402.l.8048.t.3': 2,
-        '402.l.8048.t.4': 3,
-        '402.l.8048.t.9': 8,
-        '402.l.8048.t.8': 7,
-        '402.l.8048.t.7': 6,
-        '402.l.8048.t.5': 4,
-        '402.l.8048.t.10': 9
+        '410.l.11456.t.2': 1,
+        '410.l.11456.t.6': 5,
+        '410.l.11456.t.1': 0,
+        '410.l.11456.t.3': 2,
+        '410.l.11456.t.4': 3,
+        '410.l.11456.t.9': 8,
+        '410.l.11456.t.8': 7,
+        '410.l.11456.t.7': 6,
+        '410.l.11456.t.5': 4,
+        '410.l.11456.t.10': 9,
+        '410.l.11456.t.11': 10,
+        '410.l.11456.t.12': 11,
+
     }
 }
 
-WEEK = '18'
+WEEK = '14'
 
 MODES = {'csv', 'sql'}
 TABLES = ['weekly_elos']
@@ -100,6 +103,8 @@ class YahooEloSystem:
 
     def dump(self):
         if self.mode == '.csv':
+            # for name, table in self.data_lake.items():
+            #     table.to_csv(os.path.join(self.path, 'data', name + self.mode))
             for name, table in self.data_model.items():
                 table.to_csv(os.path.join(self.path, 'resources', name + self.mode))
 
@@ -128,8 +133,6 @@ class YahooEloSystem:
             self.run(override)
 
     def run(self, override=False):
-        # if isinstance(self.week, int) and self.week > 17:
-        #     self.week -= 1
         if not self.formatter:
             self._set_formatter()
         if not self.calculator:
