@@ -4,9 +4,11 @@ from yahoo_oauth import OAuth2
 import yahoo_fantasy_api as yfa
 
 PARAMS = {
+    'access_token': os.environ.get('ACCESS_TOKEN'),
     'consumer_key': os.environ.get('CONSUMER_KEY'),
     'consumer_secret': os.environ.get('CONSUMER_SECRET'),
-    'token_time': os.environ.get('TOKEN_TIME'),
+    'guid': os.environ.get('GUID'),
+    'token_time': float(os.environ.get('TOKEN_TIME')),
     'token_type': os.environ.get('TOKEN_TYPE'),
     'refresh_token': os.environ.get('REFRESH_TOKEN')
 }
@@ -22,9 +24,9 @@ class YahooScraper:
     lake_leagues = None
     lake_players = None
     last_league = None
-    last_sport = None
+    last_sport = 'nba'
 
-    def __init__(self, creds, data_lake=None):
+    def __init__(self, creds, data_lake=dict()):
         self.data_lake = data_lake
         if creds:
             try:
@@ -63,16 +65,22 @@ class YahooScraper:
     def login(self):
         self.sc = self._get_session()
 
-    def fill_lake(self):
+    def fill_lake(self, data=None):
+        if data:
+            self.data_lake = data
         self.lake_sports = self.data_lake.get('sports')
         self.lake_leagues = self.data_lake.get('leagues')
+        self.lake_players = self.data_lake.get('players')
 
     def freeze_lake(self):
-        self.data_lake['sports'] = self.lake_sports
-        self.data_lake['leagues'] = self.lake_leagues
+        self.data_lake.update({
+            'sports': self.lake_sports,
+            'leagues': self.lake_leagues,
+            'players': self.lake_players
+        })
 
     def drain_lake(self):
-        return 1
+        return self.data_lake
 
     def scan_sports(self):
         for sport in SPORTS:
@@ -94,10 +102,8 @@ class YahooScraper:
     def show_sports(self):
         pass
 
-    def pick_league(self, sport=None, choice=None):
-        if sport:
-            pass
-        else:
+    def pick_league(self, choice=-1, sport=None):
+        if sport is None:
             sport = self.last_sport
         if isinstance(choice, str):
             print('not yet')

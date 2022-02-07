@@ -726,14 +726,11 @@ _logger = logging.getLogger(__file__)
 
 
 class WeeklyFormatter:
-
     weeks = dict()
     stat_map = STAT_MAP
 
-    def __init__(self, info):
-        self.league_info = info
-
-    def _stat_updater(self, info, stat):
+    def _stat_updater(self, stat):
+        res = dict()
         name = self.stat_map.get(stat['stat_id'])
         if name:
             if name[0] == 'f':
@@ -741,34 +738,13 @@ class WeeklyFormatter:
                 buckets = {
                     'm': int(v[0]),
                     'a': int(v[1]),
-                    'pct': int(v[0])/int(v[1])
+                    'pct': int(v[0]) / int(v[1])
                 }
                 for k, v in buckets.items():
-                    info.update({name + k: v})
+                    res.update({name + k: v})
             else:
-                info.update({name: stat['value']})
-
-    def _team_converter(self, team, week):
-        team_map = self.league_info['team_map']
-        if isinstance(team, int):
-            return None
-        team_dict = dict()
-        data = team['team']
-        for i, t in enumerate(data[0]):
-            if isinstance(t, dict):
-                team_dict.update(t)
-        team_info = {
-            'teamid': team_map[team_dict['team_key']],
-            'week': int(week),
-            'leagueid': self.league_info['leagueid'],
-            'score': int(data[1]['team_points']['total'])
-        }
-        stat_dump = data[1]['team_stats']['stats']
-        for stats in stat_dump:
-            # I fucking hate JSON naming
-            stat = stats['stat']
-            self._stat_updater(team_info, stat)
-        return team_info, team_dict['team_key']
+                res.update({name: stat['value']})
+        return res
 
     @staticmethod
     def _add_roto(scoreboard):
@@ -790,17 +766,16 @@ class WeeklyFormatter:
         scoreboard['roto_rank'] = ranks + 1
         return scoreboard
 
-    def create_df(self, week):
-        scoreboard = self.weeks[str(week)]
-        weekly_frame = pd.DataFrame.from_dict(scoreboard, orient='index').set_index('teamid')
+    def _create_cat_df(self, weekly_frame):
+        weekly_frame.rename(columns=STAT_MAP, inplace=True)
         weekly_frame['true_score'] = 0.0
         scored = set()
         for team in weekly_frame.index:
             if team not in scored:
                 home = weekly_frame.loc[team]
                 away = home.opponent
-                _logger.info('Fixing scores for {home} and {away} for week {week}'.format(home=team, away=away,
-                                                                                          week=week))
+#                 _logger.info('Fixing scores for {home} and {away} for week {week}'.format(home=team, away=away,
+#                                                                                           week=week))
                 home_score = home.score * 1.0
                 try:
                     away_score = weekly_frame.loc[away].score * 1.0
@@ -813,14 +788,65 @@ class WeeklyFormatter:
                 away_score += diff
                 home_score /= 9
                 away_score /= 9
-                weekly_frame['true_score'][team] = home_score
-                weekly_frame['true_score'][away] = away_score
+                weekly_frame.loc[team, 'true_score'] = home_score
+                weekly_frame.loc[away, 'true_score'] = away_score
                 scored.add(team)
                 scored.add(away)
-                _logger.info(
-                    'Fixed scores for {home} and {away} for week {week}'.format(home=team, away=away, week=week))
+#                 _logger.info(
+#                     'Fixed scores for {home} and {away} for week {week}'.format(home=team, away=away, week=week))
 
-        return self._add_roto(weekly_frame)[KEEP_COLS]
+        return self._add_roto(weekly_frame)
+
+    @staticmethod
+    def _create_points_df(weekly_frame):
+        scored = set()
+        for team in weekly_frame.index:
+            if team not in scored:
+                home = weekly_frame.loc[team]
+                away = home.opponent
+#                 _logger.info('Fixing scores for {home} and {away} for week {week}'.format(home=team, away=away,
+#                                                                                           week=week))
+                home_score = home.score
+                try:
+                    away_score = weekly_frame.loc[away].score
+                except KeyError:
+                    away_score = 0
+                except Exception as e:
+                    raise e
+                home_score = home_score/(home_score + away_score)
+                away_score = 1 - home_score
+                weekly_frame.loc[team, 'true_score'] = home_score
+                weekly_frame.loc[away, 'true_score'] = away_score
+                scored.add(team)
+                scored.add(away)
+#                 _logger.info(
+#                     'Fixed scores for {home} and {away} for week {week}'.format(home=team, away=away, week=week))
+
+        return weekly_frame
+
+    def create_df(self, week):
+        scoreboard = self.weeks[str(week)]
+        weekly_frame = pd.DataFrame.from_dict(scoreboard, orient='index')
+        weekly_frame['true_score'] = 0.0
+        if weekly_frame.shape[1] == 3:
+            return self._create_points_df(weekly_frame)
+        else:
+            return self._create_cat_df(weekly_frame)
+
+    @staticmethod
+    def _get_guid(team):
+        for d in team[0]:
+            if isinstance(d, dict):
+                res = d.get('managers')
+                if res:
+                    return res[0]['manager']['guid']
+
+    def _get_stats(self, team):
+        stat_list = team[1]['team_stats']['stats']
+        res = dict()
+        for stat in stat_list:
+            res.update(self._stat_updater(stat['stat']))
+        return res
 
     def ingest(self, scoreboard, week):
         weekly_dict = dict()
@@ -832,11 +858,23 @@ class WeeklyFormatter:
                 pass
             elif matchup['status'] in {'midevent', 'postevent'}:
                 teams = matchup['0']['teams']
-                converted0, team0 = self._team_converter(teams['0'], week)
-                converted1, team1 = self._team_converter(teams['1'], week)
-                converted0.update({'opponent': converted1['teamid']})
-                converted1.update({'opponent': converted0['teamid']})
-                weekly_dict.update({team0: converted0, team1: converted1})
+                team0 = teams['0']['team']
+                team1 = teams['1']['team']
+
+                stat0 = self._get_stats(team0)
+                stat1 = self._get_stats(team1)
+                stat0.update({
+                    'opponent': self._get_guid(team1),
+                    'score': float(team0[1]['team_points']['total'])
+                })
+                stat1.update({
+                    'opponent': self._get_guid(team0),
+                    'score': float(team1[1]['team_points']['total'])
+                })
+                weekly_dict.update({
+                    self._get_guid(team0): stat0,
+                    self._get_guid(team1): stat1
+                })
             else:
                 raise ValueError
 

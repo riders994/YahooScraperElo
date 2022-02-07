@@ -1,3 +1,4 @@
-from .elo_calculator import elo_calc, EloCalc
-from .weekly_formatter import WeeklyFormatter
+from .calculator import elo_calc, SeasonalFrameCalculator
+from .functools import week_formatter
 from .scraper import YahooScraper
+from .weekly_formatter import WeeklyFormatter
