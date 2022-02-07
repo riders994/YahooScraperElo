@@ -691,25 +691,7 @@ BOARD = {'0': {'matchup': {'week': '1',
           'completed_games': 41}}}]},
      'count': 2}}}},
  'count': 6}
-INFO = {
-    'yid': '395.l.12682',
-    'year': 2019,
-    'leagueid': 0,
-    'team_map': {
-        '410.l.11456.t.2': 1,
-        '410.l.11456.t.12': 11,
-        '410.l.11456.t.6': 3,
-        '410.l.11456.t.1': 0,
-        '410.l.11456.t.3': 6,
-        '410.l.11456.t.4': 7,
-        '410.l.11456.t.9': 5,
-        '410.l.11456.t.8': 9,
-        '410.l.11456.t.7': 8,
-        '410.l.11456.t.5': 2,
-        '410.l.11456.t.11': 10,
-        '410.l.11456.t.10': 4
-    }
-}
+
 STAT_MAP = {
     '9004003': 'fg',
     '9007006': 'ft',
@@ -727,11 +709,10 @@ _logger = logging.getLogger(__file__)
 
 class WeeklyFormatter:
     weeks = dict()
-    stat_map = STAT_MAP
 
     def _stat_updater(self, stat):
         res = dict()
-        name = self.stat_map.get(stat['stat_id'])
+        name = STAT_MAP.get(stat['stat_id'])
         if name:
             if name[0] == 'f':
                 v = stat['value'].split('/')
@@ -882,6 +863,6 @@ class WeeklyFormatter:
 
 
 if __name__ == '__main__':
-    frm = WeeklyFormatter(INFO)
+    frm = WeeklyFormatter()
     frm.ingest(BOARD, WEEK)
     print('done')

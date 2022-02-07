@@ -1,7 +1,7 @@
 import pandas as pd
 import numpy as np
 import logging
-from .functools import elo_calc
+from .funkydo import elo_calc
 
 WEEK = 2
 FULL_ROWS = ['fgpct', 'ftpct', 'threes', 'points', 'rebounds', 'assists', 'steals', 'blocks', 'turnovers', 'true_score',

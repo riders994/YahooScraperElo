@@ -7,27 +7,6 @@ import json
 
 parser = argparse.ArgumentParser()
 
-LEAGUE = {
-    'yid': '410.l.11456',
-    'year': 2021,
-    'leagueid': 0,
-    'channelid': 12682,
-    'team_map': {
-        '410.l.11456.t.2': 1,
-        '410.l.11456.t.6': 5,
-        '410.l.11456.t.1': 0,
-        '410.l.11456.t.3': 2,
-        '410.l.11456.t.4': 3,
-        '410.l.11456.t.9': 8,
-        '410.l.11456.t.8': 7,
-        '410.l.11456.t.7': 6,
-        '410.l.11456.t.5': 4,
-        '410.l.11456.t.10': 9,
-        '410.l.11456.t.11': 10,
-        '410.l.11456.t.12': 11,
-
-    }
-}
 
 LAKE = {
     'sports': {
@@ -132,7 +111,7 @@ LAKE = {
 
 WEEK = '0:16'
 
-MODES = {'csv', 'sql'}
+MODES = {'.csv', '.sql'}
 TABLES = ['weekly_elos']
 PUDDLES = LAKE.keys()
 YEAR = '2021'
@@ -169,7 +148,7 @@ class YahooEloSystem:
         if new_mode not in MODES:
             raise ValueError('Invalid mode: {}'.format(new_mode))
         else:
-            self.mode = '.' + new_mode
+            self.mode = new_mode
 
     def _gen_scraper(self):
         self.scraper = YahooScraper(self.creds)
@@ -226,10 +205,12 @@ class YahooEloSystem:
         self.week, self.multi = week_formatter(str(week))
 
     def _set_formatter(self):
-        self.formatter = WeeklyFormatter()
+        if not self.formatter:
+            self.formatter = WeeklyFormatter()
 
     def _set_calc(self):
-        self.calculator = SeasonalFrameCalculator(self.data_lake)
+        if not self.calculator:
+            self.calculator = SeasonalFrameCalculator(self.data_lake)
 
     def run_multiple(self, override=False, year=YEAR):
         self.multi = False
@@ -241,18 +222,11 @@ class YahooEloSystem:
             self.week = i
             self.run(self.week, override, year)
 
-    def _check_week(self, week=None):
-        if week is not None:
-            return 'week_' + str(week) in self.data_model['weekly_elos'].columns
-        return 'week_' + str(self.week) in self.data_model['weekly_elos'].columns
-
     def run(self, week=WEEK, override=False, year=YEAR):
         self._set_week(week)
         self.last_year = year
-        if not self.formatter:
-            self._set_formatter()
-        if not self.calculator:
-            self._set_calc()
+        self._set_formatter()
+        self._set_calc()
         if self.multi:
             self.run_multiple(override, year)
         else:
@@ -264,9 +238,10 @@ class YahooEloSystem:
                         {'weekly_elos': self.calculator.team_elo_frame.rename(index=self.data_lake['names'])}
                     )
                 else:
-                    if self._check_week(self.week - 1):
+                    w = week or self.week
+                    if 'week_' + str(w) in self.data_model['weekly_elos'].columns:
                         if not override:
-                            if self._check_week():
+                            if 'week_' + str(w) in self.data_model['weekly_elos'].columns:
                                 return
                         for league_id, league_info in self.data_lake['leagues'].items():
                             league = league_id
@@ -286,7 +261,7 @@ class YahooEloSystem:
 
 
 if __name__ == "__main__":
-    sys = YahooEloSystem()
-    sys.run(WEEK, True, '2021')
-    sys.dump(False)
+    elo_sys = YahooEloSystem()
+    elo_sys.run(WEEK, True, '2021')
+    elo_sys.dump(False)
     print('done')
