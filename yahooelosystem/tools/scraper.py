@@ -112,11 +112,10 @@ class YahooScraper:
 
     def scan_league(self, league_id=None):
         if league_id:
-            lid = league_id
-            self._set_league(lid)
+            self._set_league(league_id)
         else:
-            lid = self.last_league
-        self.league = yfa.League(self.sc, lid)
+            league_id = self.last_league
+        self.league = yfa.League(self.sc, league_id)
         if self.lake_leagues:
             league_data = self.lake_leagues
         else:
@@ -124,7 +123,7 @@ class YahooScraper:
         teams = self.league.teams()
         league_data.update(
             {
-                lid: {
+                league_id: {
                     'year': self.league.settings()['season'],
                     'guids': [team['managers'][0]['manager']['guid'] for _, team in teams.items()]
                 }
@@ -140,13 +139,13 @@ class YahooScraper:
             guid = team['managers'][0]['manager']['guid']
             team_info = player_data.get(guid)
             if team_info:
-                if lid not in team_info['lids']:
-                    team_info['lids'].append(lid)
+                if league_id not in team_info['lids']:
+                    team_info['lids'].append(league_id)
                 if team['name'] not in team_info['names']:
                     team_info['names'].append(team['name'])
             else:
                 team_info = {
-                    'lids': [lid],
+                    'lids': [league_id],
                     'names': [team['name']]
                 }
             player_data.update({guid: team_info})

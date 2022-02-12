@@ -181,16 +181,19 @@ class YahooEloSystem:
         if isinstance(payload, dict):
             self.data_model.update(payload)
         elif self.mode == '.csv':
-            self._load_pd()
             self._load_json()
+            self._load_pd()
 
-    def dump(self, publish=False):
+    def dump(self, publish=False, pub_sig=''):
         if self.mode == '.csv':
             for name, pond in self.data_lake.items():
                 with open(os.path.join(self.path, 'data', name + '.json'), 'w') as f:
                     json.dump(pond, f)
             for name, table in self.data_model.items():
-                table.to_csv(os.path.join(self.path, 'resources', name + publish * '_{}'.format(self.last_year) + self.mode))
+                table.to_csv(os.path.join(
+                    self.path, 'resources', name +
+                                            publish * '_{}'.format(self.last_year) + publish * pub_sig + self.mode
+                ))
 
     def ingest(self, choice=-1):
         self.scraper.fill_lake(self.data_lake)
