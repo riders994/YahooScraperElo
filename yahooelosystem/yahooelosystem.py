@@ -7,7 +7,6 @@ import json
 
 parser = argparse.ArgumentParser()
 
-
 LAKE = {
     'sports': {
         'nfl': ['380.l.436197', '390.l.470721', '399.l.684980', '406.l.200662'],
@@ -109,7 +108,7 @@ LAKE = {
     }
 }
 
-WEEK = '0:16'
+WEEK = '24'
 
 MODES = {'.csv', '.sql'}
 TABLES = ['weekly_elos']
@@ -118,13 +117,14 @@ YEAR = '2021'
 
 
 class YahooEloSystem:
-
     calculator = None
     data_lake = dict()
     data_model = dict()
     formatter = None
-    last_year = None
+    recent_year = None
+    lake_filled = False
     loaded = False
+    model_filled = False
     multi = False
     scraper = None
     week = '0'
@@ -177,11 +177,18 @@ class YahooEloSystem:
             self.data_model.update({table: frame})
         self.loaded = True
 
-    def load(self, payload=None):
-        if isinstance(payload, dict):
-            self.data_model.update(payload)
-        elif self.mode == '.csv':
+    def load(self, data_lake=None, data_model=None, force_load=False):
+        if isinstance(data_lake, dict):
+            self.data_lake.update(data_lake)
+            self.lake_filled = force_load
+            self.loaded = force_load
+        elif self.mode == '.csv' and data_lake:
             self._load_json()
+        if isinstance(data_model, dict):
+            self.data_model.update(data_model)
+            self.model_filled = force_load
+            self.loaded = force_load
+        elif self.mode == '.csv' and data_model:
             self._load_pd()
 
     def dump(self, publish=False, pub_sig=''):
@@ -192,7 +199,7 @@ class YahooEloSystem:
             for name, table in self.data_model.items():
                 table.to_csv(os.path.join(
                     self.path, 'resources', name +
-                                            publish * '_{}'.format(self.last_year) + publish * pub_sig + self.mode
+                                            publish * '_{}'.format(self.recent_year) + publish * pub_sig + self.mode
                 ))
 
     def ingest(self, choice=-1):
@@ -227,7 +234,7 @@ class YahooEloSystem:
 
     def run(self, week=WEEK, override=False, year=YEAR):
         self._set_week(week)
-        self.last_year = year
+        self.recent_year = year
         self._set_formatter()
         self._set_calc()
         if self.multi:
@@ -236,7 +243,7 @@ class YahooEloSystem:
             if self.loaded:
                 self.calculator.fill_lake(self.data_lake)
                 if self.week == 0:
-                    self.calculator.run(self.week)
+                    self.calculator.run(self.week, year=year)
                     self.data_model.update(
                         {'weekly_elos': self.calculator.team_elo_frame.rename(index=self.data_lake['names'])}
                     )
@@ -246,25 +253,25 @@ class YahooEloSystem:
                         if not override:
                             if 'week_' + str(w) in self.data_model['weekly_elos'].columns:
                                 return
-                        for league_id, league_info in self.data_lake['leagues'].items():
-                            league = league_id
-                            if league_info['year'] == year:
-                                break
-                        matchups = self.scraper.get_scoreboards(league, self.week)
-                        self.formatter.ingest(matchups, self.week)
-                        df = self.formatter.create_df(self.week)
-                        self.calculator.run(self.week, df, self.data_model['weekly_elos'])
-                        self.data_model.update(
-                            {'weekly_elos': self.calculator.team_elo_frame.rename(index=self.data_lake['names'])}
-                        )
-                        self.loaded = True
+                    for league_id, league_info in self.data_lake['leagues'].items():
+                        league = league_id
+                        if league_info['year'] == year:
+                            break
+                    matchups = self.scraper.get_scoreboards(league, self.week)
+                    self.formatter.ingest(matchups, self.week)
+                    df = self.formatter.create_df(self.week)
+                    self.calculator.run(self.week, df, self.data_model['weekly_elos'], year=year)
+                    self.data_model.update(
+                        {'weekly_elos': self.calculator.team_elo_frame.rename(index=self.data_lake['names'])}
+                    )
+                    self.loaded = True
             else:
-                self.load()
+                self.load(True, True)
                 self.run(str(self.week), override, year)
 
 
 if __name__ == "__main__":
     elo_sys = YahooEloSystem()
-    elo_sys.run(WEEK, True, '2021')
+    elo_sys.run(WEEK, True, YEAR)
     elo_sys.dump(False)
     print('done')

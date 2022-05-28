@@ -25,6 +25,7 @@ class YahooScraper:
     lake_players = None
     last_league = None
     last_sport = 'nba'
+    lake_names = None
 
     def __init__(self, creds, data_lake=dict()):
         self.data_lake = data_lake
@@ -71,12 +72,14 @@ class YahooScraper:
         self.lake_sports = self.data_lake.get('sports')
         self.lake_leagues = self.data_lake.get('leagues')
         self.lake_players = self.data_lake.get('players')
+        self.lake_names = self.data_lake.get('names')
 
     def freeze_lake(self):
         self.data_lake.update({
             'sports': self.lake_sports,
             'leagues': self.lake_leagues,
-            'players': self.lake_players
+            'players': self.lake_players,
+            'names': self.lake_names
         })
 
     def drain_lake(self):
@@ -125,7 +128,7 @@ class YahooScraper:
             {
                 league_id: {
                     'year': self.league.settings()['season'],
-                    'guids': [team['managers'][0]['manager']['guid'] for _, team in teams.items()]
+                    'guids': list(set([team['managers'][0]['manager']['guid'] for _, team in teams.items()]))
                 }
             }
         )

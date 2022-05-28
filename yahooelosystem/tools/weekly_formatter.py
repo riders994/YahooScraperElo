@@ -9,6 +9,11 @@ KEEP_COLS = ['fgm', 'fga', 'fgpct', 'ftm', 'fta', 'ftpct', 'threes', 'points', '
 ROTO_COLS = ['fgpct', 'ftpct', 'threes', 'points', 'rebounds', 'assists', 'steals', 'blocks', 'turnovers']
 FLT_COLS = ['fgpct', 'ftpct', 'score']
 
+BAD_GUIDS = {
+    'I AM A QUITTER': 'DuckHead',
+    'Beepity-Boopity': 'YPMRGP6D6AZCDFMT7LTZQ5NKL4'
+}
+
 WEEK = 14
 BOARD = {'0': {'matchup': {'week': '1',
    'week_start': '2021-10-19',
@@ -710,17 +715,25 @@ _logger = logging.getLogger(__file__)
 class WeeklyFormatter:
     weeks = dict()
 
-    def _stat_updater(self, stat):
+    @staticmethod
+    def _stat_updater(stat):
         res = dict()
         name = STAT_MAP.get(stat['stat_id'])
         if name:
             if name[0] == 'f':
-                v = stat['value'].split('/')
-                buckets = {
-                    'm': int(v[0]),
-                    'a': int(v[1]),
-                    'pct': int(v[0]) / int(v[1])
-                }
+                if stat['value'] == '/':
+                    buckets = {
+                        'm': 0,
+                        'a': 0,
+                        'pct': .5
+                    }
+                else:
+                    v = stat['value'].split('/')
+                    buckets = {
+                        'm': int(v[0]),
+                        'a': int(v[1]),
+                        'pct': int(v[0]) / int(v[1])
+                    }
                 for k, v in buckets.items():
                     res.update({name + k: v})
             else:
@@ -748,7 +761,6 @@ class WeeklyFormatter:
         return scoreboard
 
     def _create_cat_df(self, weekly_frame):
-        weekly_frame.rename(columns=STAT_MAP, inplace=True)
         weekly_frame['true_score'] = 0.0
         scored = set()
         for team in weekly_frame.index:
@@ -781,13 +793,13 @@ class WeeklyFormatter:
     @staticmethod
     def _create_points_df(weekly_frame):
         scored = set()
-        for team in weekly_frame.index:
-            if team not in scored:
-                home = weekly_frame.loc[team]
-                away = home.opponent
+        for home in weekly_frame.index:
+            if home not in scored:
+                home_atts = weekly_frame.loc[home]
+                away = home_atts.opponent
 #                 _logger.info('Fixing scores for {home} and {away} for week {week}'.format(home=team, away=away,
 #                                                                                           week=week))
-                home_score = home.score
+                home_score = home_atts.score
                 try:
                     away_score = weekly_frame.loc[away].score
                 except KeyError:
@@ -796,9 +808,9 @@ class WeeklyFormatter:
                     raise e
                 home_score = home_score/(home_score + away_score)
                 away_score = 1 - home_score
-                weekly_frame.loc[team, 'true_score'] = home_score
+                weekly_frame.loc[home, 'true_score'] = home_score
                 weekly_frame.loc[away, 'true_score'] = away_score
-                scored.add(team)
+                scored.add(home)
                 scored.add(away)
 #                 _logger.info(
 #                     'Fixed scores for {home} and {away} for week {week}'.format(home=team, away=away, week=week))
@@ -818,6 +830,11 @@ class WeeklyFormatter:
     def _get_guid(team):
         for d in team[0]:
             if isinstance(d, dict):
+                name = d.get('name')
+                if name:
+                    guid_check = BAD_GUIDS.get(name)
+                    if guid_check:
+                        return BAD_GUIDS[name]
                 res = d.get('managers')
                 if res:
                     return res[0]['manager']['guid']
