@@ -12,6 +12,17 @@ def week_formatter(week):
         return int(week), False
 
 
+def calc_proba(player_1, player_2):
+    share_a = np.power(10, player_1[0]/400)
+    share_b = np.power(10, player_2[0]/400)
+    total = share_a + share_b
+
+    expected_a = share_a/total
+    expected_b = share_b/total
+
+    return expected_a, expected_b
+
+
 def elo_calc(player_1, player_2, k=60):
     share_a = np.power(10, player_1[0]/400)
     share_b = np.power(10, player_2[0]/400)

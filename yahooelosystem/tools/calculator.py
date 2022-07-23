@@ -62,7 +62,7 @@ class SeasonalFrameCalculator:
                         break
                 guids = league_info['guids']
                 self.proba_frame = pd.DataFrame(
-                    {'week_0': [0] * len(guids)}, index=guids
+                    {'week_0': [0.5] * len(guids)}, index=guids
                 )
             if schema == 'true_score':
                 for league_id, league_info in self.lake_leagues.items():
@@ -70,10 +70,10 @@ class SeasonalFrameCalculator:
                         break
                 guids = league_info['guids']
                 self.true_score_frame = pd.DataFrame(
-                    {'week_0': [0] * len(guids)}, index=guids
+                    {'week_0': [0.5] * len(guids)}, index=guids
                 )
 
-    def _team_elo(self, board, week=0):
+    def _team_elo(self, board, week=0, summaries=False):
         last_week = 'week_{}'.format(week - 1)
         new_week = dict()
         calced = set()
@@ -101,12 +101,12 @@ class SeasonalFrameCalculator:
                 new_week.update({k: v})
         self.team_elo_frame['week_{}'.format(week)] = pd.Series(new_week)
 
-    def run(self, week=0, scoreboard=None, team_elo=None, stat_elo=None, roto=None, year=None):
+    def run(self, week=0, scoreboard=None, team_elo=None, stat_elo=None, roto=None, year=None, summstats=None):
         if week:
             if team_elo is not None:
                 if not isinstance(team_elo, bool):
                     self.team_elo_frame = team_elo.rename(index=self.dename)
-                self._team_elo(scoreboard, week)
+                self._team_elo(scoreboard, week, summstats)
         else:
             schema = list()
             if team_elo:
@@ -115,6 +115,9 @@ class SeasonalFrameCalculator:
                 schema.append('stat_elo')
             if roto:
                 schema.append('roto')
+            if summstats:
+                schema.append('probs')
+                schema.append('true_score')
             if len(schema) == 1:
                 schema = schema[0]
             elif len(schema) == 0:
