@@ -714,6 +714,11 @@ _logger = logging.getLogger(__file__)
 
 class WeeklyFormatter:
     weeks = dict()
+    win_loss_rows = dict()
+    matchup_rows = list()
+
+    def __init__(self, summaries=False):
+        self.summaries = summaries
 
     @staticmethod
     def _stat_updater(stat):
@@ -846,12 +851,49 @@ class WeeklyFormatter:
             res.update(self._stat_updater(stat['stat']))
         return res
 
+    @staticmethod
+    def _get_team_key(team):
+        for d in team[0]:
+            if isinstance(d, dict):
+                res = d.get('team_key')
+                if res:
+                    return res
+
+    def _create_win_loss_rows(self, team0, team1, winner):
+        return {
+            self._get_guid(team0): int(winner == self._get_team_key(team0)),
+            self._get_guid(team1): int(winner == self._get_team_key(team1))
+        }
+
+    def _create_matchup_rows(self, team0, team1):
+        pass
+
+    def _create_weekly_df_rows(self, team0, team1):
+        stat0 = self._get_stats(team0)
+        stat1 = self._get_stats(team1)
+
+        stat0.update({
+            'opponent': self._get_guid(team1),
+            'score': float(team0[1]['team_points']['total'])
+        })
+        stat1.update({
+            'opponent': self._get_guid(team0),
+            'score': float(team1[1]['team_points']['total'])
+        })
+
+        return {
+            self._get_guid(team0): stat0,
+            self._get_guid(team1): stat1
+        }
+
     def ingest(self, scoreboard, week):
         weekly_dict = dict()
-        for v in scoreboard.values():
-            if isinstance(v, int):
+        win_loss_rows = dict()
+        matchup_rows = list()
+        for event in scoreboard.values():
+            if isinstance(event, int):
                 break
-            matchup = v['matchup']
+            matchup = event['matchup']
             if matchup['status'] == 'preevent':
                 pass
             elif matchup['status'] in {'midevent', 'postevent'}:
@@ -859,24 +901,17 @@ class WeeklyFormatter:
                 team0 = teams['0']['team']
                 team1 = teams['1']['team']
 
-                stat0 = self._get_stats(team0)
-                stat1 = self._get_stats(team1)
-                stat0.update({
-                    'opponent': self._get_guid(team1),
-                    'score': float(team0[1]['team_points']['total'])
-                })
-                stat1.update({
-                    'opponent': self._get_guid(team0),
-                    'score': float(team1[1]['team_points']['total'])
-                })
-                weekly_dict.update({
-                    self._get_guid(team0): stat0,
-                    self._get_guid(team1): stat1
-                })
+                weekly_dict.update(self._create_weekly_df_rows(team0, team1))
+                if self.summaries:
+                    winner = matchup['winner_team_key']
+                    win_loss_rows.update(self._create_win_loss_rows(team0, team1, winner))
             else:
                 raise ValueError
 
         self.weeks.update({str(week): weekly_dict})
+        if self.summaries:
+            self.win_loss_rows.update({'week_{}'.format(week): win_loss_rows})
+            self.matchup_rows += matchup_rows
 
 
 if __name__ == '__main__':

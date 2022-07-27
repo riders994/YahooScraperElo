@@ -13,6 +13,7 @@ _logger = logging.getLogger(__name__)
 class SeasonalFrameCalculator:
 
     dename = dict()
+    k = 60
     lake_leagues = None
     lake_names = None
     lake_players = None
@@ -20,7 +21,7 @@ class SeasonalFrameCalculator:
     roto_frame = None
     stat_elo_frame = None
     team_elo_frame = None
-    true_score_frame = None
+    true_score_rows = list()
 
     def __init__(self, data_lake=dict()):
         self.data_lake = data_lake
@@ -42,6 +43,11 @@ class SeasonalFrameCalculator:
 
     def drain_lake(self):
         return self.data_lake
+
+    def _set_k(self, new_k):
+        if isinstance(int, new_k) or isinstance(float, new_k):
+            if new_k > 0:
+                self.k = new_k
 
     def _generate(self, schema, year):
         if isinstance(schema, list):
@@ -77,19 +83,32 @@ class SeasonalFrameCalculator:
         last_week = 'week_{}'.format(week - 1)
         new_week = dict()
         calced = set()
-        vals = board['true_score']
+        true_scores = board['true_score']
         for player_1_id in board.index:
             if player_1_id not in calced:
                 player_2_id = board['opponent'][player_1_id]
 
 #                 _logger.info('Calculating for %s vs. %s', player_1, player_2)
                 player_1_data = [
-                    self.team_elo_frame.loc[player_1_id, last_week] * 1.0, vals[player_1_id]
+                    self.team_elo_frame.loc[player_1_id, last_week] * 1.0, true_scores[player_1_id]
                 ]
                 player_2_data = [
-                    self.team_elo_frame.loc[player_2_id, last_week] * 1.0, vals[player_2_id]
+                    self.team_elo_frame.loc[player_2_id, last_week] * 1.0, true_scores[player_2_id]
                 ]
-                scores = elo_calc(player_1_data, player_2_data, k=60)
+                if summaries:
+                    scores, probas = elo_calc(player_1_data, player_2_data, self.k, summaries)
+                    self.true_score_rows.append({
+                        'week': week,
+                        'player_1': player_1_id,
+                        'player_2': player_2_id,
+                        'player_1_score': true_scores[player_1_id],
+                        'player_2_score': true_scores[player_2_id],
+                        'player_1_proba': probas[0],
+                        'player_2_proba': probas[1]
+                    })
+                    self._gen_matchup_summary_row()
+                else:
+                    scores = elo_calc(player_1_data, player_2_data, self.k)
 #                 _logger.info('Adding scores to new week')
                 new_week.update({player_1_id: scores[0]})
                 new_week.update({player_2_id: scores[1]})
@@ -101,7 +120,9 @@ class SeasonalFrameCalculator:
                 new_week.update({k: v})
         self.team_elo_frame['week_{}'.format(week)] = pd.Series(new_week)
 
-    def run(self, week=0, scoreboard=None, team_elo=None, stat_elo=None, roto=None, year=None, summstats=None):
+    def run(self, week=0, scoreboard=None, team_elo=None, stat_elo=None, roto=None, year=None, summstats=None, k=None):
+        if k:
+            self._set_k(k)
         if week:
             if team_elo is not None:
                 if not isinstance(team_elo, bool):

@@ -112,6 +112,7 @@ WEEK = '24'
 
 MODES = {'.csv', '.sql'}
 TABLES = ['weekly_elos']
+SUMMARIES = ['matchups']
 PUDDLES = LAKE.keys()
 YEAR = '2021'
 
@@ -131,9 +132,10 @@ class YahooEloSystem:
 
     _logger = logging.getLogger(__file__)
 
-    def __init__(self, scraper=None, creds=None, mode='.csv', path=None):
-        self.mode = mode
+    def __init__(self, scraper=None, creds=None, mode='.csv', path=None, summaries=False):
         self.creds = creds
+        self.mode = mode
+        self.summaries = summaries
         if path:
             self.path = path
         else:
@@ -191,6 +193,13 @@ class YahooEloSystem:
         elif self.mode == '.csv' and data_model:
             self._load_pd()
 
+    def _gen_matchup_summary(self):
+        return pd.DataFrame(self.calculator.true_score_rows)
+
+    def _gen_summary_table(self, s):
+        if s == 'matchups':
+            return self._gen_matchup_summary()
+
     def dump(self, publish=False, pub_sig=''):
         if self.mode == '.csv':
             for name, pond in self.data_lake.items():
@@ -199,8 +208,15 @@ class YahooEloSystem:
             for name, table in self.data_model.items():
                 table.to_csv(os.path.join(
                     self.path, 'resources', name +
-                                            publish * '_{}'.format(self.recent_year) + publish * pub_sig + self.mode
+                    publish * '_{}'.format(self.recent_year) + publish * pub_sig + self.mode
                 ))
+            if self.summaries:
+                for summary in SUMMARIES:
+                    table = self._gen_summary_table(summary)
+                    table.to_csv(os.path.join(
+                        self.path, 'resources', summary +
+                        publish * '_{}'.format(self.recent_year) + publish * pub_sig + self.mode
+                    ))
 
     def ingest(self, choice=-1):
         self.scraper.fill_lake(self.data_lake)
@@ -230,20 +246,20 @@ class YahooEloSystem:
             week_stored = range(self.week + 1)
         for i in week_stored:
             self.week = i
-            self.run(self.week, override, year)
+            self.run(week=self.week, override=override, year=year)
 
-    def run(self, week=WEEK, override=False, year=YEAR):
+    def run(self, week=WEEK, override=False, year=YEAR, k=60):
         self._set_week(week)
         self.recent_year = year
         self._set_formatter()
         self._set_calc()
         if self.multi:
-            self.run_multiple(override, year)
+            self.run_multiple(override=override, year=year)
         else:
             if self.loaded:
                 self.calculator.fill_lake(self.data_lake)
                 if self.week == 0:
-                    self.calculator.run(self.week, year=year)
+                    self.calculator.run(week=self.week, year=year, summstats=self.summaries, k=k)
                     self.data_model.update(
                         {'weekly_elos': self.calculator.team_elo_frame.rename(index=self.data_lake['names'])}
                     )
@@ -260,18 +276,19 @@ class YahooEloSystem:
                     matchups = self.scraper.get_scoreboards(league, self.week)
                     self.formatter.ingest(matchups, self.week)
                     df = self.formatter.create_df(self.week)
-                    self.calculator.run(self.week, df, self.data_model['weekly_elos'], year=year)
+                    self.calculator.run(week=self.week, scoreboard=df, team_elo=self.data_model['weekly_elos'],
+                                        year=year, summstats=self.summaries, k=k)
                     self.data_model.update(
                         {'weekly_elos': self.calculator.team_elo_frame.rename(index=self.data_lake['names'])}
                     )
                     self.loaded = True
             else:
                 self.load(True, True)
-                self.run(str(self.week), override, year)
+                self.run(week=str(self.week), override=override, year=year)
 
 
 if __name__ == "__main__":
     elo_sys = YahooEloSystem()
-    elo_sys.run(WEEK, True, YEAR)
+    elo_sys.run(week=WEEK, override=True, year=YEAR, k=60)
     elo_sys.dump(False)
     print('done')
