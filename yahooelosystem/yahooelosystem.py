@@ -194,7 +194,7 @@ class YahooEloSystem:
             self._load_pd()
 
     def _gen_matchup_summary(self):
-        return pd.DataFrame(self.calculator.true_score_rows)
+        return pd.DataFrame(self.formatter.matchup_rows)
 
     def _gen_summary_table(self, s):
         if s == 'matchups':
@@ -232,13 +232,13 @@ class YahooEloSystem:
 
     def _set_formatter(self):
         if not self.formatter:
-            self.formatter = WeeklyFormatter()
+            self.formatter = WeeklyFormatter(self.summaries)
 
     def _set_calc(self):
         if not self.calculator:
             self.calculator = SeasonalFrameCalculator(self.data_lake)
 
-    def run_multiple(self, override=False, year=YEAR):
+    def run_multiple(self, override=False, year=YEAR, k=60):
         self.multi = False
         if len(self.week) - 1:
             week_stored = self.week
@@ -246,7 +246,7 @@ class YahooEloSystem:
             week_stored = range(self.week + 1)
         for i in week_stored:
             self.week = i
-            self.run(week=self.week, override=override, year=year)
+            self.run(week=self.week, override=override, year=year, k=k)
 
     def run(self, week=WEEK, override=False, year=YEAR, k=60):
         self._set_week(week)
@@ -254,12 +254,12 @@ class YahooEloSystem:
         self._set_formatter()
         self._set_calc()
         if self.multi:
-            self.run_multiple(override=override, year=year)
+            self.run_multiple(override=override, year=year, k=k)
         else:
             if self.loaded:
                 self.calculator.fill_lake(self.data_lake)
                 if self.week == 0:
-                    self.calculator.run(week=self.week, year=year, summstats=self.summaries, k=k)
+                    self.calculator.run(week=self.week, year=year, k=k)
                     self.data_model.update(
                         {'weekly_elos': self.calculator.team_elo_frame.rename(index=self.data_lake['names'])}
                     )
@@ -277,18 +277,18 @@ class YahooEloSystem:
                     self.formatter.ingest(matchups, self.week)
                     df = self.formatter.create_df(self.week)
                     self.calculator.run(week=self.week, scoreboard=df, team_elo=self.data_model['weekly_elos'],
-                                        year=year, summstats=self.summaries, k=k)
+                                        year=year, k=k)
                     self.data_model.update(
                         {'weekly_elos': self.calculator.team_elo_frame.rename(index=self.data_lake['names'])}
                     )
                     self.loaded = True
             else:
                 self.load(True, True)
-                self.run(week=str(self.week), override=override, year=year)
+                self.run(week=str(self.week), override=override, year=year, k=k)
 
 
 if __name__ == "__main__":
-    elo_sys = YahooEloSystem()
+    elo_sys = YahooEloSystem(summaries=True)
     elo_sys.run(week=WEEK, override=True, year=YEAR, k=60)
     elo_sys.dump(False)
     print('done')

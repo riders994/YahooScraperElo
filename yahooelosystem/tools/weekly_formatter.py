@@ -713,9 +713,8 @@ _logger = logging.getLogger(__file__)
 
 
 class WeeklyFormatter:
-    weeks = dict()
-    win_loss_rows = dict()
     matchup_rows = list()
+    weeks = dict()
 
     def __init__(self, summaries=False):
         self.summaries = summaries
@@ -766,7 +765,6 @@ class WeeklyFormatter:
         return scoreboard
 
     def _create_cat_df(self, weekly_frame):
-        weekly_frame['true_score'] = 0.0
         scored = set()
         for team in weekly_frame.index:
             if team not in scored:
@@ -859,14 +857,33 @@ class WeeklyFormatter:
                 if res:
                     return res
 
-    def _create_win_loss_rows(self, team0, team1, winner):
+    def _create_matchup_rows(self, team0, team1, week, matchup):
+        home_score = float(team0[1]['team_points']['total'])
+        away_score = float(team1[1]['team_points']['total'])
+        total = home_score + away_score
+        po = bool(int(matchup['is_playoffs']))
+        if total < 10:
+            margin = (9 - total)/2
+            home_score = (home_score + margin)/9
+            away_score = (away_score + margin)/9
+        else:
+            home_score /= total
+            away_score /= total
+        if home_score > away_score:
+            winner = self._get_guid(team0)
+        elif away_score > home_score:
+            winner = self._get_guid(team1)
+        else:
+            winner = 'tie'
         return {
-            self._get_guid(team0): int(winner == self._get_team_key(team0)),
-            self._get_guid(team1): int(winner == self._get_team_key(team1))
+            'week': week,
+            'home_guid': self._get_guid(team0),
+            'home_score': home_score,
+            'away_guid': self._get_guid(team1),
+            'away_score': away_score,
+            'winner_guid': winner,
+            'playoff': po
         }
-
-    def _create_matchup_rows(self, team0, team1):
-        pass
 
     def _create_weekly_df_rows(self, team0, team1):
         stat0 = self._get_stats(team0)
@@ -888,7 +905,6 @@ class WeeklyFormatter:
 
     def ingest(self, scoreboard, week):
         weekly_dict = dict()
-        win_loss_rows = dict()
         matchup_rows = list()
         for event in scoreboard.values():
             if isinstance(event, int):
@@ -903,18 +919,16 @@ class WeeklyFormatter:
 
                 weekly_dict.update(self._create_weekly_df_rows(team0, team1))
                 if self.summaries:
-                    winner = matchup['winner_team_key']
-                    win_loss_rows.update(self._create_win_loss_rows(team0, team1, winner))
+                    matchup_rows += [self._create_matchup_rows(team0, team1, week, matchup)]
             else:
                 raise ValueError
 
         self.weeks.update({str(week): weekly_dict})
         if self.summaries:
-            self.win_loss_rows.update({'week_{}'.format(week): win_loss_rows})
             self.matchup_rows += matchup_rows
 
 
 if __name__ == '__main__':
-    frm = WeeklyFormatter()
+    frm = WeeklyFormatter(True)
     frm.ingest(BOARD, WEEK)
     print('done')
