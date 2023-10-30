@@ -2,9 +2,9 @@ library(ggplot2)
 library(tidyr)
 library(reshape)
 
-full_elo <- read_csv("~/activity/FantasyNBATools/YahooScraperElo/resources/full_elo.csv")
+full_elo <- read.csv("~/activity/FantasyNBATools/YahooScraperElo/resources/full_elo.csv")
 
-current_elos <- read_csv("~/activity/FantasyNBATools/YahooScraperElo/resources/weekly_elos.csv")
+current_elos <- read.csv("~/activity/FantasyNBATools/YahooScraperElo/resources/weekly_elos.csv")
 
 champions = list(
   "2014" = "Alison",
@@ -14,7 +14,7 @@ champions = list(
   "2018" = "John",
   "2019" = "Ravi",
   "2020" = "Sahil",
-  "2021" = FALSE
+  "2021" = "John"
 )
 
 
@@ -45,6 +45,7 @@ process_df <- function(df, y, c){
   Long_Elos$Year = y
   Long_Elos$Champion = FALSE
   Long_Elos$Champion[Long_Elos$Players == champions[[as.character(y)]]] = TRUE
+  print(as.integer(Long_Elos$Champion))
   Long_Elos$Champion_Shape = factor(as.integer(Long_Elos$Champion) + 1)
   levels(Long_Elos$Champion_Shape) = c("Loser", "Champion")
   if(y %in% c(2014, 2016)){
@@ -81,7 +82,7 @@ for (i in 2014:2021){
   single_df = read.csv(single_file)
   final_single_df = process_df(single_df, i, FALSE)
   singles[[as.character(i)]] = final_single_df
-  cumulative_file = paste('./resources/weekly_elos_', i, '_c.csv', sep='')
+  cumulative_file = paste('./resources/weekly_elos_', i, '_c_k_60_osa_20.csv', sep='')
   cumulative_df = read.csv(cumulative_file)
   final_cumulative_df = process_df(cumulative_df, i, TRUE)
   cumulative[[as.character(i)]] = final_cumulative_df

@@ -2,7 +2,7 @@ import os
 import logging
 import argparse
 import pandas as pd
-from tools import WeeklyFormatter, SeasonalFrameCalculator, YahooScraper, week_formatter
+import tools
 import json
 
 parser = argparse.ArgumentParser()
@@ -108,13 +108,13 @@ LAKE = {
     }
 }
 
-WEEK = '24'
+WEEK = '0:1'
 
 MODES = {'.csv', '.sql'}
 TABLES = ['weekly_elos']
 SUMMARIES = ['matchups']
 PUDDLES = LAKE.keys()
-YEAR = '2021'
+YEAR = '2023'
 
 
 class YahooEloSystem:
@@ -127,6 +127,7 @@ class YahooEloSystem:
     loaded = False
     model_filled = False
     multi = False
+    odds = None
     scraper = None
     week = '0'
 
@@ -153,7 +154,7 @@ class YahooEloSystem:
             self.mode = new_mode
 
     def _gen_scraper(self):
-        self.scraper = YahooScraper(self.creds)
+        self.scraper = tools.YahooScraper(self.creds)
 
     def _load_pd(self):
         for table in TABLES:
@@ -194,7 +195,9 @@ class YahooEloSystem:
             self._load_pd()
 
     def _gen_matchup_summary(self):
-        return pd.DataFrame(self.formatter.matchup_rows)
+        res = pd.DataFrame(self.formatter.matchup_rows)
+        self.formatter.clear_matchups()
+        return res
 
     def _gen_summary_table(self, s):
         if s == 'matchups':
@@ -220,6 +223,8 @@ class YahooEloSystem:
 
     def ingest(self, choice=-1):
         self.scraper.fill_lake(self.data_lake)
+        self.scraper.scan_sports()
+        self.scraper.pick_sport('nba')
         self.scraper.pick_league(choice)
         leagues, players = self.scraper.scan_league()
         self.data_lake.update({
@@ -228,15 +233,20 @@ class YahooEloSystem:
         })
 
     def _set_week(self, week):
-        self.week, self.multi = week_formatter(str(week))
+        self.week, self.multi = tools.basics.week_formatter(str(week))
 
     def _set_formatter(self):
         if not self.formatter:
-            self.formatter = WeeklyFormatter(self.summaries)
+            self.formatter = tools.WeeklyFormatter(self.summaries)
 
-    def _set_calc(self):
+    def _set_calc(self, calc):
         if not self.calculator:
-            self.calculator = SeasonalFrameCalculator(self.data_lake)
+            self.calculator = tools.SeasonalFrameCalculator(self.data_lake, calc)
+
+    def _set_odds(self):
+        if not self.odds:
+            self.odds = tools.OddsCalculator(self.data_lake)
+            self.odds.set_formatter(self.formatter)
 
     def run_multiple(self, override=False, year=YEAR, k=60):
         self.multi = False
@@ -248,23 +258,25 @@ class YahooEloSystem:
             self.week = i
             self.run(week=self.week, override=override, year=year, k=k)
 
-    def run(self, week=WEEK, override=False, year=YEAR, k=60):
+    def run(self, week=WEEK, override=False, year=YEAR, k=60, calc='score'):
         self._set_week(week)
         self.recent_year = year
         self._set_formatter()
-        self._set_calc()
+        self._set_calc(calc)
+        self._set_odds()
         if self.multi:
             self.run_multiple(override=override, year=year, k=k)
         else:
             if self.loaded:
                 self.calculator.fill_lake(self.data_lake)
                 if self.week == 0:
+                    self.ingest()
                     self.calculator.run(week=self.week, year=year, k=k)
                     self.data_model.update(
                         {'weekly_elos': self.calculator.team_elo_frame.rename(index=self.data_lake['names'])}
                     )
                 else:
-                    w = week or self.week
+                    w = int(week) or self.week
                     if 'week_' + str(w) in self.data_model['weekly_elos'].columns:
                         if not override:
                             if 'week_' + str(w) in self.data_model['weekly_elos'].columns:
@@ -273,22 +285,24 @@ class YahooEloSystem:
                         league = league_id
                         if league_info['year'] == year:
                             break
-                    matchups = self.scraper.get_scoreboards(league, self.week)
+                    matchups = self.scraper.get_scoreboards(league, w)
                     self.formatter.ingest(matchups, self.week)
                     df = self.formatter.create_df(self.week)
-                    self.calculator.run(week=self.week, scoreboard=df, team_elo=self.data_model['weekly_elos'],
+                    self.calculator.run(week=w, scoreboard=df, team_elo=self.data_model['weekly_elos'],
                                         year=year, k=k)
+                    self.odds.fill_lake(self.data_lake)
+                    self.odds.run(w, self.scraper.league, self.calculator.team_elo_frame)
                     self.data_model.update(
                         {'weekly_elos': self.calculator.team_elo_frame.rename(index=self.data_lake['names'])}
                     )
                     self.loaded = True
             else:
                 self.load(True, True)
-                self.run(week=str(self.week), override=override, year=year, k=k)
+                self.run(week=str(self.week), override=override, year=year, k=k, calc=calc)
 
 
 if __name__ == "__main__":
     elo_sys = YahooEloSystem(summaries=True)
-    elo_sys.run(week=WEEK, override=True, year=YEAR, k=60)
+    elo_sys.run(week=WEEK, override=True, year=YEAR, k=60, calc='score')
     elo_sys.dump(False)
     print('done')

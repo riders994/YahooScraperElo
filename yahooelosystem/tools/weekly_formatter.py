@@ -715,9 +715,13 @@ _logger = logging.getLogger(__file__)
 class WeeklyFormatter:
     matchup_rows = list()
     weeks = dict()
+    odds = dict()
 
     def __init__(self, summaries=False):
         self.summaries = summaries
+
+    def clear_matchups(self):
+        self.matchup_rows = list()
 
     @staticmethod
     def _stat_updater(stat):
@@ -871,10 +875,13 @@ class WeeklyFormatter:
             away_score /= total
         if home_score > away_score:
             winner = self._get_guid(team0)
+            loser = self._get_guid(team1)
         elif away_score > home_score:
             winner = self._get_guid(team1)
+            loser = self._get_guid(team0)
         else:
             winner = 'tie'
+            loser = 'tie'
         return {
             'week': week,
             'home_guid': self._get_guid(team0),
@@ -882,6 +889,7 @@ class WeeklyFormatter:
             'away_guid': self._get_guid(team1),
             'away_score': away_score,
             'winner_guid': winner,
+            'loser_guid': loser,
             'playoff': po
         }
 
@@ -903,20 +911,25 @@ class WeeklyFormatter:
             self._get_guid(team1): stat1
         }
 
-    def ingest(self, scoreboard, week):
+    def _create_odds_matchups(self, team0, team1):
+        return (
+            self._get_guid(team0), self._get_guid(team1)
+        )
+
+    def ingest(self, scoreboard, week, odds=False):
+        odds_dict = dict()
         weekly_dict = dict()
         matchup_rows = list()
-        for event in scoreboard.values():
+        for i, event in enumerate(scoreboard.values()):
             if isinstance(event, int):
                 break
             matchup = event['matchup']
-            if matchup['status'] == 'preevent':
-                pass
+            teams = matchup['0']['teams']
+            team0 = teams['0']['team']
+            team1 = teams['1']['team']
+            if odds:
+                odds_dict.update({str(i): self._create_odds_matchups(team0, team1)})
             elif matchup['status'] in {'midevent', 'postevent'}:
-                teams = matchup['0']['teams']
-                team0 = teams['0']['team']
-                team1 = teams['1']['team']
-
                 weekly_dict.update(self._create_weekly_df_rows(team0, team1))
                 if self.summaries:
                     matchup_rows += [self._create_matchup_rows(team0, team1, week, matchup)]
@@ -924,6 +937,7 @@ class WeeklyFormatter:
                 raise ValueError
 
         self.weeks.update({str(week): weekly_dict})
+        self.odds.update({str(week): odds_dict})
         if self.summaries:
             self.matchup_rows += matchup_rows
 

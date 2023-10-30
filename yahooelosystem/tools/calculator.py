@@ -1,7 +1,6 @@
 import pandas as pd
-import numpy as np
 import logging
-from .funkydo import elo_calc
+from .basics.funkydo import bin_elo_calc, score_elo_calc, trin_elo_calc
 
 WEEK = 2
 FULL_ROWS = ['fgpct', 'ftpct', 'threes', 'points', 'rebounds', 'assists', 'steals', 'blocks', 'turnovers', 'true_score',
@@ -23,8 +22,14 @@ class SeasonalFrameCalculator:
     team_elo_frame = None
     true_score_rows = list()
 
-    def __init__(self, data_lake=dict()):
+    def __init__(self, data_lake=dict(), calculator='score'):
         self.data_lake = data_lake
+        if calculator == 'score':
+            self.calculator = score_elo_calc
+        elif calculator == 'binary':
+            self.calculator = bin_elo_calc
+        elif calculator == 'trinary':
+            self.calculator = trin_elo_calc
 
     def fill_lake(self, data=None):
         if data:
@@ -79,14 +84,14 @@ class SeasonalFrameCalculator:
                 player_2_data = [
                     self.team_elo_frame.loc[player_2_id, last_week] * 1.0, true_scores[player_2_id]
                 ]
-                scores = elo_calc(player_1_data, player_2_data, self.k)
+                scores = self.calculator(player_1_data, player_2_data, self.k)
 #                 _logger.info('Adding scores to new week')
                 new_week.update({player_1_id: scores[0]})
                 new_week.update({player_2_id: scores[1]})
                 calced.add(player_1_id)
                 calced.add(player_2_id)
 #         _logger.info('Writing to frame')
-        for k, v in self.team_elo_frame[last_week].iteritems():
+        for k, v in self.team_elo_frame[last_week].items():
             if not new_week.get(k):
                 new_week.update({k: v})
         self.team_elo_frame['week_{}'.format(week)] = pd.Series(new_week)

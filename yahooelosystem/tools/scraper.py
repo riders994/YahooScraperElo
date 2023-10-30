@@ -58,7 +58,7 @@ class YahooScraper:
         self.last_league = lid
 
     def _set_sport(self, spid):
-        self.lake_sports = spid
+        self.last_sport = spid
 
     def pick_sport(self, spid):
         self._set_sport(spid)
@@ -91,10 +91,7 @@ class YahooScraper:
             league_ids = list(game.league_ids())
             if self.lake_sports:
                 s = self.lake_sports.get(sport)
-                if s:
-                    s.append(league_ids)
-                else:
-                    self.lake_sports.update({sport: league_ids})
+                self.lake_sports.update({sport: league_ids})
             else:
                 self.lake_sports = dict()
                 self.lake_sports.update({sport: league_ids})
@@ -169,3 +166,14 @@ class YahooScraper:
 
         matchups = self.league.matchups(week)
         return matchups['fantasy_content']['league'][1]['scoreboard']['0']['matchups']
+
+
+if __name__ == "__main__":
+    scraper = YahooScraper(None)
+    scraper.login()
+    scraper.scan_sports()
+    scraper.pick_sport('nba')
+    scraper.pick_league()
+    scraper.scan_league()
+    scraper.freeze_lake()
+    print('done')

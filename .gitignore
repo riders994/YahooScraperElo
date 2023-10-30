@@ -12,3 +12,4 @@ yahooelosystem/__pycache__/
 secrets.json
 data/
 graphs/
+scripts/.ipynb_checkpoints

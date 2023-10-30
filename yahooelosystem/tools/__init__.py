@@ -1,4 +1,5 @@
-from .calculator import elo_calc, SeasonalFrameCalculator
-from .funkydo import week_formatter
+from .calculator import SeasonalFrameCalculator
 from .scraper import YahooScraper
 from .weekly_formatter import WeeklyFormatter
+from .odds import OddsCalculator
+from . import basics
