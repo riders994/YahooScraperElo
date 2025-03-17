@@ -115,7 +115,7 @@ class SeasonalFrameCalculator:
             if len(schema) == 1:
                 schema = schema[0]
             elif len(schema) == 0:
-                schema = ['team_elo']
+                schema = 'team_elo'
             self._generate(schema, year)
 
 

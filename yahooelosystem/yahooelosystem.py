@@ -108,7 +108,7 @@ LAKE = {
     }
 }
 
-WEEK = '0:1'
+WEEK = '23'
 
 MODES = {'.csv', '.sql'}
 TABLES = ['weekly_elos']
@@ -193,6 +193,7 @@ class YahooEloSystem:
             self.loaded = force_load
         elif self.mode == '.csv' and data_model:
             self._load_pd()
+        self.loaded = True
 
     def _gen_matchup_summary(self):
         res = pd.DataFrame(self.formatter.matchup_rows)
@@ -304,5 +305,5 @@ class YahooEloSystem:
 if __name__ == "__main__":
     elo_sys = YahooEloSystem(summaries=True)
     elo_sys.run(week=WEEK, override=True, year=YEAR, k=60, calc='score')
-    elo_sys.dump(False)
+    elo_sys.dump()
     print('done')
