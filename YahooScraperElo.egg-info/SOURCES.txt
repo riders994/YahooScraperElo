@@ -1,0 +1,16 @@
+setup.py
+YahooScraperElo.egg-info/PKG-INFO
+YahooScraperElo.egg-info/SOURCES.txt
+YahooScraperElo.egg-info/dependency_links.txt
+YahooScraperElo.egg-info/requires.txt
+YahooScraperElo.egg-info/top_level.txt
+yahooelosystem/__init__.py
+yahooelosystem/yahooelosystem.py
+yahooelosystem/tools/__init__.py
+yahooelosystem/tools/calculator.py
+yahooelosystem/tools/odds.py
+yahooelosystem/tools/scraper.py
+yahooelosystem/tools/weekly_formatter.py
+yahooelosystem/tools/basics/__init__.py
+yahooelosystem/tools/basics/class_bases.py
+yahooelosystem/tools/basics/funkydo.py

@@ -10,6 +10,8 @@ LAKE = {
 }
 
 WEEKS = {
+    '2023': '1:24',
+    '2022': '1:24',
     '2021': '1:24',
     '2020': '1:20',
     '2019': '1:19',
@@ -47,7 +49,7 @@ def run_scraper(lake):
 def run_annual_elo(scraper):
     elo_sys = YahooEloSystem(scraper, summaries=True)
     elo_sys.load(data_lake=scraper.drain_lake(), force_load=True)
-    for i in range(2014, 2022):
+    for i in range(2014, 2024):
         year = str(i)
         weeks = WEEKS.get(year)
         elo_sys.run('0', True, year)
@@ -85,28 +87,51 @@ def off_season_adjustment(last_season, lake, year, adj=40):
     if adj > 0:
         final_elos[both] = (final_elos[both] * scale - 1500) * adj + 1500
     adjusted_elos = final_elos.loc[both]
-    return adjusted_elos.append(pd.Series(newbies))
+    return pd.concat([adjusted_elos, pd.Series(newbies)])
+
+
+def scoreboard_from_matchups(matchups_df, week):
+    rows = {}
+    for _, row in matchups_df[matchups_df['week'] == week].iterrows():
+        rows[row['home_guid']] = {'true_score': row['home_score'], 'opponent': row['away_guid']}
+        rows[row['away_guid']] = {'true_score': row['away_score'], 'opponent': row['home_guid']}
+    return pd.DataFrame.from_dict(rows, orient='index')
 
 
 def run_full_elo(lake, k, osa, calc):
-    elo_sys = YahooEloSystem()
+    from yahooelosystem.tools.calculator import SeasonalFrameCalculator
+    calc_obj = SeasonalFrameCalculator(lake, calc)
+    calc_obj.fill_lake(lake)
+    calc_obj._set_k(k)
     new = None
-    f = '_c_k_{}_osa_{}'
-    if calc == 'trinary':
-        f += '_trin'
-    for i in range(2014, 2022):
-        if i > 2014:
-            elo_sys.load(data_model={'weekly_elos': pd.DataFrame(new, columns=['week_0'])}, force_load=True)
-        week = WEEKS.get(str(i), '0:21')
-        elo_sys.run(week, True, str(i), k=k, calc=calc)
-        elo_sys.dump(True, f.format(k, osa))
-        new = off_season_adjustment(elo_sys.data_model['weekly_elos'], lake, str(i + 1), adj=osa)
+    suffix = '_c_k_{}_osa_{}'.format(k, osa) + ('_trin' if calc == 'trinary' else '')
+    for i in range(2014, 2024):
+        year = str(i)
+        matchups_df = pd.read_csv(
+            os.path.join(os.getcwd(), 'resources', 'matchups_{}.csv'.format(year)), index_col=0
+        )
+        if new is None:
+            for league_id, league_info in lake['leagues'].items():
+                if league_info['year'] == year:
+                    break
+            guids = league_info['guids']
+            calc_obj.team_elo_frame = pd.DataFrame({'week_0': [1500.0] * len(guids)}, index=guids)
+        else:
+            calc_obj.team_elo_frame = pd.DataFrame(new, columns=['week_0'])
+        for w in sorted(matchups_df['week'].unique()):
+            board = scoreboard_from_matchups(matchups_df, w)
+            calc_obj._team_elo(board, int(w))
+        result_frame = calc_obj.team_elo_frame.rename(index=lake['names'])
+        result_frame.to_csv(
+            os.path.join(os.getcwd(), 'resources', 'weekly_elos_{}{}.csv'.format(year, suffix))
+        )
+        new = off_season_adjustment(result_frame, lake, str(i + 1), adj=osa)
 
 
 def stitch():
     last_week = None
     core_df = None
-    for i in range(2014, 2022):
+    for i in range(2014, 2024):
         name = 'weekly_elos_{}.csv'.format(i)
         df = pd.read_csv(os.path.join(os.getcwd(), 'resources', name), index_col=0)
         if last_week:
@@ -123,13 +148,18 @@ def stitch():
 
 def run():
     lake = fill_lake()
-    scraper = run_scraper(lake)
-    run_annual_elo(scraper)
-    # for k in K_GRID:
-    #     for osa in OSA_GRID:
-    #         run_full_elo(lake, k, osa, 'score')
-    #         run_full_elo(lake, k, osa, 'trinary')
-    # stitch()
+    annual_done = all(
+        os.path.exists(os.path.join(os.getcwd(), 'resources', 'matchups_{}.csv'.format(y)))
+        for y in range(2014, 2024)
+    )
+    if not annual_done:
+        scraper = run_scraper(lake)
+        run_annual_elo(scraper)
+    for k in K_GRID:
+        for osa in OSA_GRID:
+            run_full_elo(lake, k, osa, 'score')
+            run_full_elo(lake, k, osa, 'trinary')
+    stitch()
 
 
 if __name__ == "__main__":

@@ -61,7 +61,7 @@ def get_probas(matchup, season_frames, week):
     for name, frame in season_frames.items():
         col = 'week_' + str(week)
         elos = frame[col]
-        res.update({name + '_proba': proba_calc(elos[home_guid], elos[away_guid])})
+        res.update({name + '_proba': proba_calc(elos.get(home_guid, 1500), elos.get(away_guid, 1500))})
     return res
 
 
@@ -116,7 +116,7 @@ def process_data():
     historic_wins = defaultdict(int)
     matchup_rows = dict()
     proba_rows = dict()
-    for year in range(2014, 2022):
+    for year in range(2014, 2024):
         m, p = process_season(year, historic_wins, matchup_rows, proba_rows)
     return m, p
 
